@@ -155,10 +155,15 @@ Beacon is a standard Next.js app and deploys anywhere Next runs.
 
 ### Vercel (recommended)
 
-1. Push this repo to GitHub.
-2. Import into Vercel.
-3. Add the environment variables from `.env.example` (Supabase + FCM).
-4. Deploy — Vercel runs `npm run build` automatically.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FKiashMaharaj%2Fbeacon)
+
+1. Go to [vercel.com/new](https://vercel.com/new) and **Import** the existing `KiashMaharaj/beacon` repo
+   (or use the button above).
+2. Vercel auto-detects Next.js — no build settings to change.
+3. **Environment variables are optional.** With none set, Beacon deploys in fully-interactive
+   *demo mode* (seeded in-memory data). To connect a real backend, add the values from
+   `.env.example` (Supabase + FCM).
+4. Click **Deploy** — Vercel runs `npm run build` and gives you a live `*.vercel.app` URL.
 
 ### Docker / self-host
 
