@@ -36,6 +36,7 @@ function MissingForm() {
   const router = useRouter();
   const { createReport } = useBeacon();
   const [step, setStep] = useState<'form' | 'preview'>('form');
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   const {
     register,
@@ -59,24 +60,32 @@ function MissingForm() {
 
   const goPreview = () => setStep('preview');
 
-  const publish = (data: MissingReportForm) => {
+  const [publishing, setPublishing] = useState(false);
+
+  const publish = async (data: MissingReportForm) => {
+    setPublishing(true);
     const lastSeenAt = new Date(`${data.lastSeenDate}T${data.lastSeenTime}`).toISOString();
-    const report = createReport({
-      kind: 'missing',
-      name: data.name,
-      species: data.species,
-      breed: data.breed || null,
-      colour: data.colour,
-      age: data.age || null,
-      size: data.size,
-      description: data.description || null,
-      photoUrl: data.photoUrl || null,
-      lastSeenAt,
-      location: data.location,
-      alertRadiusKm: data.alertRadiusKm,
-      contactPref: data.contactPref,
-    });
-    router.replace(`/pets/${report.id}?published=1`);
+    try {
+      const report = await createReport({
+        kind: 'missing',
+        name: data.name,
+        species: data.species,
+        breed: data.breed || null,
+        colour: data.colour,
+        age: data.age || null,
+        size: data.size,
+        description: data.description || null,
+        photoUrl: data.photoUrl || null,
+        lastSeenAt,
+        location: data.location,
+        alertRadiusKm: data.alertRadiusKm,
+        contactPref: data.contactPref,
+      });
+      router.replace(`/pets/${report.id}?published=1`);
+    } catch {
+      setPublishing(false);
+      setPublishError('We could not publish your beacon. Please try again.');
+    }
   };
 
   if (step === 'preview') {
@@ -119,11 +128,16 @@ function MissingForm() {
             </div>
           </Card>
 
+          {publishError && (
+            <p className="mt-4 rounded-2xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600 dark:bg-rose-500/10">
+              {publishError}
+            </p>
+          )}
           <div className="mt-6 flex gap-3">
-            <Button variant="outline" fullWidth onClick={() => setStep('form')}>
+            <Button variant="outline" fullWidth onClick={() => setStep('form')} disabled={publishing}>
               Edit
             </Button>
-            <Button fullWidth onClick={handleSubmit(publish)}>
+            <Button fullWidth onClick={handleSubmit(publish)} loading={publishing}>
               Publish beacon
             </Button>
           </div>

@@ -1,4 +1,4 @@
-// Beacon — runtime configuration & feature detection.
+// Beacon - runtime configuration & feature detection.
 
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -6,7 +6,7 @@ export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 /**
  * When Supabase credentials are absent the app runs in "demo mode" against a
  * seeded in-memory store. This lets the entire journey be explored with zero
- * backend configuration — invaluable for local development and reviews.
+ * backend configuration - invaluable for local development and reviews.
  */
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 

@@ -31,9 +31,15 @@ function nowTime() {
   return new Date().toTimeString().slice(0, 5);
 }
 
-function MatchCard({ match }: { match: ScoredMatch }) {
+function MatchCard({ match, onNotify }: { match: ScoredMatch; onNotify: () => void | Promise<void> }) {
   const { report, score, reasons } = match;
   const label = confidenceLabel(score);
+  const [notified, setNotified] = useState(false);
+
+  const handleNotify = async () => {
+    await onNotify();
+    setNotified(true);
+  };
   return (
     <Card className="overflow-hidden">
       <div className="flex gap-3 p-3">
@@ -68,8 +74,8 @@ function MatchCard({ match }: { match: ScoredMatch }) {
             View pet
           </Button>
         </Link>
-        <Button size="sm" fullWidth onClick={() => alert(`${report.reporter?.name ?? 'The owner'} has been notified of this likely match. 🎉`)}>
-          Notify owner
+        <Button size="sm" fullWidth variant={notified ? 'outline' : 'primary'} onClick={handleNotify} disabled={notified}>
+          {notified ? 'Owner notified ✓' : 'Notify owner'}
         </Button>
       </div>
     </Card>
@@ -78,7 +84,7 @@ function MatchCard({ match }: { match: ScoredMatch }) {
 
 function FoundForm() {
   const router = useRouter();
-  const { createReport, matchesForFound } = useBeacon();
+  const { createReport, matchesForFound, notifyOwnerOfMatch } = useBeacon();
   const [step, setStep] = useState<'form' | 'result'>('form');
   const [created, setCreated] = useState<PetReport | null>(null);
   const [matches, setMatches] = useState<ScoredMatch[]>([]);
@@ -100,25 +106,36 @@ function FoundForm() {
     },
   });
 
-  const publish = (data: FoundReportForm) => {
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+
+  const publish = async (data: FoundReportForm) => {
+    setPublishing(true);
+    setPublishError(null);
     const foundAt = new Date(`${data.foundDate}T${data.foundTime}`).toISOString();
-    const report = createReport({
-      kind: 'found',
-      species: data.species,
-      breed: data.breed || null,
-      colour: data.colour,
-      size: data.size,
-      photoUrl: data.photoUrl || null,
-      lastSeenAt: foundAt,
-      location: data.location,
-      stillHasPet: data.stillHasPet,
-      notes: data.notes || null,
-      contactPref: data.contactPref,
-    });
-    setCreated(report);
-    setMatches(matchesForFound(report));
-    setStep('result');
-    window.scrollTo({ top: 0 });
+    try {
+      const report = await createReport({
+        kind: 'found',
+        species: data.species,
+        breed: data.breed || null,
+        colour: data.colour,
+        size: data.size,
+        photoUrl: data.photoUrl || null,
+        lastSeenAt: foundAt,
+        location: data.location,
+        stillHasPet: data.stillHasPet,
+        notes: data.notes || null,
+        contactPref: data.contactPref,
+      });
+      setCreated(report);
+      setMatches(matchesForFound(report));
+      setStep('result');
+      window.scrollTo({ top: 0 });
+    } catch {
+      setPublishError('We could not save your report. Please try again.');
+    } finally {
+      setPublishing(false);
+    }
   };
 
   if (step === 'result' && created) {
@@ -150,7 +167,11 @@ function FoundForm() {
             </div>
             <div className="space-y-3">
               {matches.map((m) => (
-                <MatchCard key={m.report.id} match={m} />
+                <MatchCard
+                  key={m.report.id}
+                  match={m}
+                  onNotify={() => notifyOwnerOfMatch(created.id, m.report.id, m.score)}
+                />
               ))}
             </div>
           </section>
@@ -270,7 +291,7 @@ function FoundForm() {
 
         <div>
           <FieldLabel htmlFor="notes">Notes</FieldLabel>
-          <Textarea id="notes" placeholder="Anything helpful — collar, behaviour, where they are now…" {...register('notes')} />
+          <Textarea id="notes" placeholder="Anything helpful: collar, behaviour, where they are now…" {...register('notes')} />
         </div>
 
         <div>
@@ -282,7 +303,12 @@ function FoundForm() {
           />
         </div>
 
-        <Button type="submit" fullWidth size="lg">
+        {publishError && (
+          <p className="rounded-2xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600 dark:bg-rose-500/10">
+            {publishError}
+          </p>
+        )}
+        <Button type="submit" fullWidth size="lg" loading={publishing}>
           Find matches
         </Button>
       </form>

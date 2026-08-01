@@ -1,4 +1,4 @@
-// Beacon — smart matching engine.
+// Beacon - smart matching engine.
 // Compares a "found" pet report against active "missing" reports and scores
 // likely matches. Pure & deterministic so it is fully unit-testable and can
 // run on the client (demo mode) or server (production, via an Edge Function).
@@ -33,7 +33,7 @@ function colourOverlap(a?: string | null, b?: string | null): boolean {
 /**
  * Score a single missing report against a found report.
  * Weighting (max 100):
- *   species    30  (hard signal — a mismatch heavily penalises)
+ *   species    30  (hard signal - a mismatch heavily penalises)
  *   distance   25  (closer last-seen / found location)
  *   colour     20
  *   size       10
@@ -44,7 +44,7 @@ export function scoreMatch(found: PetReport, missing: PetReport): ScoredMatch {
   const reasons: string[] = [];
   let score = 0;
 
-  // Species — the strongest discriminator.
+  // Species - the strongest discriminator.
   if (found.species === missing.species) {
     score += 30;
     reasons.push('Same species');
@@ -83,7 +83,7 @@ export function scoreMatch(found: PetReport, missing: PetReport): ScoredMatch {
     reasons.push('Similar breed');
   }
 
-  // Recency — found close in time to when it went missing.
+  // Recency - found close in time to when it went missing.
   const gap = daysBetween(found.lastSeenAt, missing.lastSeenAt);
   if (gap != null && gap <= 7) {
     score += 5;

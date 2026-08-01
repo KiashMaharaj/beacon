@@ -1,4 +1,4 @@
--- Beacon — Initial schema
+-- Beacon - Initial schema
 -- Version 1: Lost & Found Pets
 -- Designed for future expansion into a broader neighbourhood platform.
 
@@ -181,7 +181,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Haversine distance helper (km) — no PostGIS dependency required -----------
+-- Haversine distance helper (km) - no PostGIS dependency required -----------
 create or replace function public.distance_km(
   lat1 double precision, lng1 double precision,
   lat2 double precision, lng2 double precision

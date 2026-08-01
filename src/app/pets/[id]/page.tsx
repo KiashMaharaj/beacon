@@ -97,8 +97,8 @@ function PetDetailContent() {
     },
   ];
 
-  const handleReunion = () => {
-    markReunited(report.id);
+  const handleReunion = async () => {
+    await markReunited(report.id);
     setCelebrated(true);
   };
 
@@ -110,7 +110,7 @@ function PetDetailContent() {
         await navigator.share({ title: 'Beacon', text, url });
       } else {
         await navigator.clipboard.writeText(url);
-        alert('Link copied — share it with your neighbours!');
+        alert('Link copied. Share it with your neighbours!');
       }
     } catch {
       /* user cancelled */

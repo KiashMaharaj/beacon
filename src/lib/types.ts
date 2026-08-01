@@ -1,4 +1,4 @@
-// Beacon — application-facing domain types (camelCase view models).
+// Beacon - application-facing domain types (camelCase view models).
 
 export type Species = 'dog' | 'cat' | 'other';
 export type Size = 'small' | 'medium' | 'large';

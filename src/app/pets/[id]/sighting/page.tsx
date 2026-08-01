@@ -31,6 +31,8 @@ function SightingContent() {
   const { getReport, addSighting, user } = useBeacon();
   const report = getReport(params.id);
   const [done, setDone] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const {
     register,
@@ -49,17 +51,25 @@ function SightingContent() {
 
   const title = report.name ?? 'this pet';
 
-  const submit = (data: SightingForm) => {
+  const submit = async (data: SightingForm) => {
+    setSending(true);
+    setSendError(null);
     const seenAt = new Date(`${data.seenDate}T${data.seenTime}`).toISOString();
-    addSighting(report.id, {
-      reporter: { id: user.id, name: user.name },
-      seenAt,
-      location: data.location,
-      photoUrl: data.photoUrl || null,
-      notes: data.notes || null,
-    });
-    setDone(true);
-    window.scrollTo({ top: 0 });
+    try {
+      await addSighting(report.id, {
+        reporter: { id: user.id, name: user.name },
+        seenAt,
+        location: data.location,
+        photoUrl: data.photoUrl || null,
+        notes: data.notes || null,
+      });
+      setDone(true);
+      window.scrollTo({ top: 0 });
+    } catch {
+      setSendError('We could not send your sighting. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   if (done) {
@@ -112,7 +122,7 @@ function SightingContent() {
         <div>
           <p className="font-display font-bold text-ink dark:text-cream-50">{title}</p>
           <p className="text-xs text-ink-muted dark:text-stone-400">
-            Share what you saw — it really helps.
+            Share what you saw. It really helps.
           </p>
         </div>
       </Card>
@@ -162,7 +172,12 @@ function SightingContent() {
           />
         </div>
 
-        <Button type="submit" fullWidth size="lg">
+        {sendError && (
+          <p className="rounded-2xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600 dark:bg-rose-500/10">
+            {sendError}
+          </p>
+        )}
+        <Button type="submit" fullWidth size="lg" loading={sending}>
           Send sighting
         </Button>
       </form>

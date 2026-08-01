@@ -3,8 +3,8 @@
 **Helping neighbours bring pets home.**
 
 Beacon is a mobile-first neighbourhood community app. Version 1 is laser-focused on the best
-possible **lost & found pet** experience — reporting missing pets, reporting found pets, smart
-matching, sightings, and celebrating reunions — with an architecture intentionally built to grow
+possible **lost & found pet** experience - reporting missing pets, reporting found pets, smart
+matching, sightings, and celebrating reunions - with an architecture intentionally built to grow
 into a broader neighbourhood platform (safety alerts, estate notices, local services and more).
 
 <p align="center"><em>Apple-quality polish, Airbnb warmth.</em></p>
@@ -15,9 +15,13 @@ into a broader neighbourhood platform (safety alerts, estate notices, local serv
 
 - **Polished onboarding** that explains the value _before_ asking for notification permission
   (permission is only requested after the user taps **Enable alerts**).
-- **A home screen that feels alive** — friendly greeting, nearby missing pets, recently reunited
+- **A home screen that feels alive** - friendly greeting, nearby missing pets, recently reunited
   pets, helpful tips, quick actions and a floating action button.
-- **Report a missing pet** with photo, full details, tap-to-place map location, alert radius and a
+- **Accounts** via email + password or **one-tap Google sign-in** (Supabase Auth), with a demo mode
+  that needs no backend at all.
+- **Real interactive maps** (Leaflet + OpenStreetMap) with **type-to-search location lookup**,
+  drag-to-place pins, "use my location" and light/dark map styles, no API key required.
+- **Report a missing pet** with photo, full details, searchable map location, alert radius and a
   preview-before-publish step.
 - **Report a found pet** with **automatic smart matching** against nearby missing pets, ranked by a
   transparent confidence score, with one-tap "notify owner".
@@ -25,7 +29,7 @@ into a broader neighbourhood platform (safety alerts, estate notices, local serv
   reunited) and sorting (nearest / recent / longest missing).
 - **Pet detail** with hero image, map, timeline, sightings, share, contact owner, "I saw this pet"
   and **Mark found** with a delightful reunion celebration.
-- **Notifications & saved areas** — choose a radius (1/3/5/10 km), species filter, and multiple
+- **Notifications & saved areas** - choose a radius (1/3/5/10 km), species filter, and multiple
   saved areas (Home, Work, Parents, Holiday home, custom). Owners are only alerted when a pet's
   last-seen location overlaps a saved area. **No continuous background tracking, ever.**
 - **Beautiful dark mode**, generous spacing, subtle motion, and **original hand-crafted SVG
@@ -42,8 +46,9 @@ into a broader neighbourhood platform (safety alerts, estate notices, local serv
 | Forms          | **React Hook Form** + **Zod** validation           |
 | Animation      | **Framer Motion** + Tailwind keyframes             |
 | Backend        | **Supabase** (Postgres, Auth, Storage, Realtime, RLS) |
+| Auth           | Email + password and **Google** OAuth (Supabase)   |
 | Push (arch.)   | **Firebase Cloud Messaging** architecture          |
-| Maps           | Stylised SVG map, swappable for MapTiler/Mapbox    |
+| Maps           | **Leaflet** + OpenStreetMap (CARTO tiles) + **Nominatim** geocoding, no API key |
 | Testing        | **Jest** + **Testing Library**                     |
 
 ## 🚀 Quick start
@@ -74,9 +79,10 @@ switch persistence to the real backend (see below).
 
 1. **Create a project** at [supabase.com](https://supabase.com).
 2. **Run the migrations** in order (SQL editor or `supabase db push`):
-   - `supabase/migrations/0001_init.sql` — tables, enums, indexes, triggers, helpers
-   - `supabase/migrations/0002_rls.sql` — Row Level Security policies
-   - `supabase/migrations/0003_storage.sql` — `pet-photos` storage bucket + policies
+   - `supabase/migrations/0001_init.sql` - tables, enums, indexes, triggers, helpers
+   - `supabase/migrations/0002_rls.sql` - Row Level Security policies
+   - `supabase/migrations/0003_storage.sql` - `pet-photos` storage bucket + policies
+   - `supabase/migrations/0004_matches_policies.sql` - scoped insert policy for smart matches
 3. **Copy env vars** into `.env.local` (see `.env.example`):
 
    ```bash
@@ -84,7 +90,21 @@ switch persistence to the real backend (see below).
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
    ```
 
-4. **Regenerate types** (optional, kept in `src/lib/database.types.ts`):
+   As soon as these two are present the app switches from demo mode to the **live backend**:
+   real accounts, persisted reports, photo uploads to Storage, and realtime feed updates.
+
+4. **Configure authentication** (Supabase dashboard to _Authentication_):
+   - **URL configuration:** set the Site URL (e.g. `http://localhost:3000` in dev, your domain in
+     prod) and add `<site>/auth/callback` to the **Redirect URLs** allow-list.
+   - **Email:** enabled by default. For an instant local flow you can turn off "Confirm email"
+     under _Providers to Email_; otherwise new users confirm via a link before their first login.
+   - **Google:** enable the **Google** provider and paste in a Google OAuth **Client ID / Secret**
+     from the [Google Cloud console](https://console.cloud.google.com/apis/credentials). Use the
+     Supabase-provided callback URL (`https://<project>.supabase.co/auth/v1/callback`) as the
+     authorised redirect URI on the Google side. The in-app **Continue with Google** button then
+     works end to end via `/auth/callback`.
+
+5. **Regenerate types** (optional, kept in `src/lib/database.types.ts`):
 
    ```bash
    supabase gen types typescript --project-id <id> > src/lib/database.types.ts
@@ -92,17 +112,17 @@ switch persistence to the real backend (see below).
 
 ### Data model
 
-- `profiles` — one per auth user (auto-created on signup via trigger).
-- `pet_reports` — a single table for both **missing** and **found** reports (`kind` discriminator,
-  `status` lifecycle: `active → reunited`).
-- `sightings` — "I saw this pet" reports linked to a report.
-- `alert_areas` — a user's saved areas (Home/Work/…), each with radius & species filter.
-- `notification_prefs` — per-user alert settings and FCM push token.
-- `matches` — smart-match suggestions between found and missing reports.
+- `profiles` - one per auth user (auto-created on signup via trigger).
+- `pet_reports` - a single table for both **missing** and **found** reports (`kind` discriminator,
+  `status` lifecycle: `active to reunited`).
+- `sightings` - "I saw this pet" reports linked to a report.
+- `alert_areas` - a user's saved areas (Home/Work/…), each with radius & species filter.
+- `notification_prefs` - per-user alert settings and FCM push token.
+- `matches` - smart-match suggestions between found and missing reports.
 
 **Security:** reports & sightings are community-readable (that is the point), but only owners can
 mutate their own rows. Saved areas and notification prefs are strictly private. All enforced with
-Row Level Security — see `0002_rls.sql`. A `distance_km()` SQL helper enables radius queries without
+Row Level Security - see `0002_rls.sql`. A `distance_km()` SQL helper enables radius queries without
 a PostGIS dependency.
 
 ## 🔔 Notifications architecture (FCM)
@@ -112,7 +132,7 @@ Beacon is designed around **Firebase Cloud Messaging**:
 1. On opt-in, the client registers an FCM token stored in `notification_prefs.push_token`.
 2. When a missing-pet report is created, a Supabase Edge Function (or database webhook) computes
    which users have a **saved area overlapping** the pet's last-seen location (`distance_km`).
-3. Only those users are sent a push — matching their radius and species filter.
+3. Only those users are sent a push - matching their radius and species filter.
 
 This is a **fan-out-on-write** design that never requires background location tracking. FCM env vars
 are documented in `.env.example`; the client wiring lives behind the notification preferences UI.
@@ -120,7 +140,7 @@ are documented in `.env.example`; the client wiring lives behind the notificatio
 ## 🧠 Smart matching
 
 `src/lib/matching.ts` is a pure, fully unit-tested scoring engine. When a found pet is reported it
-scores each active missing pet (species, distance, colour, size, breed, recency) into a 0–100
+scores each active missing pet (species, distance, colour, size, breed, recency) into a 0-100
 confidence with human-readable reasons, then surfaces likely matches and offers to notify owners. It
 runs client-side in demo mode and can run in a Supabase Edge Function in production without change.
 
@@ -129,7 +149,7 @@ runs client-side in demo mode and can run in a Supabase Edge Function in product
 - Warm **beacon** (amber/orange) primary + calm **harbor** (teal) accent, on cream / warm-dark
   surfaces.
 - Rounded cards, soft shadows, gradient accents, tasteful motion.
-- **All illustrations are original SVG** (`src/components/illustrations`, `src/components/brand`) —
+- **All illustrations are original SVG** (`src/components/illustrations`, `src/components/brand`) -
   dogs, cats, small pets, paw prints, neighbourhood houses, maps, parks, trees and the Beacon logo.
 
 ## ♿ Accessibility & quality
@@ -146,7 +166,7 @@ npm test
 ```
 
 Covers the geospatial helpers, the smart-matching engine, formatting utilities, and a component
-render test. Extend with Playwright E2E for the full journey (onboarding → report → sighting →
+render test. Extend with Playwright E2E for the full journey (onboarding to report to sighting  to 
 reunion) as needed.
 
 ## 📦 Deploy
@@ -159,11 +179,11 @@ Beacon is a standard Next.js app and deploys anywhere Next runs.
 
 1. Go to [vercel.com/new](https://vercel.com/new) and **Import** the existing `KiashMaharaj/beacon` repo
    (or use the button above).
-2. Vercel auto-detects Next.js — no build settings to change.
+2. Vercel auto-detects Next.js - no build settings to change.
 3. **Environment variables are optional.** With none set, Beacon deploys in fully-interactive
    *demo mode* (seeded in-memory data). To connect a real backend, add the values from
    `.env.example` (Supabase + FCM).
-4. Click **Deploy** — Vercel runs `npm run build` and gives you a live `*.vercel.app` URL.
+4. Click **Deploy** - Vercel runs `npm run build` and gives you a live `*.vercel.app` URL.
 
 ### Docker / self-host
 
@@ -185,7 +205,7 @@ npx @bubblewrap/cli build
 
 ## 🌱 Future expansion
 
-The navigation, branding and data model are built to welcome — without disrupting V1 — community
+The navigation, branding and data model are built to welcome - without disrupting V1 - community
 safety alerts, estate notifications, local recommendations, found items, nearby services, community
 announcements and a marketplace. The **Alerts** screen already previews what's coming next.
 

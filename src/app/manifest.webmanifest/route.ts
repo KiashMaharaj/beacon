@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// PWA manifest — served as a route so we avoid a static asset build step.
+// PWA manifest, served as a route so we avoid a static asset build step.
 export function GET() {
   return NextResponse.json({
     name: 'Beacon',

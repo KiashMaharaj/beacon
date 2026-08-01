@@ -63,10 +63,3 @@ export const areaSchema = z.object({
 });
 
 export type AreaForm = z.infer<typeof areaSchema>;
-
-export const authSchema = z.object({
-  name: z.string().min(1, 'What should we call you?').max(60),
-  email: z.string().email('Enter a valid email'),
-});
-
-export type AuthForm = z.infer<typeof authSchema>;

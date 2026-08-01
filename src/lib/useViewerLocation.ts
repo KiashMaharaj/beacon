@@ -7,7 +7,7 @@ import { appConfig } from '@/lib/config';
 /**
  * Best-effort one-shot geolocation used to compute distances in the feed.
  * Falls back to the first saved area, then the app default centre. Never tracks
- * continuously — a single position request only.
+ * continuously - a single position request only.
  */
 export function useViewerLocation() {
   const { viewerLocation, setViewerLocation, areas } = useBeacon();

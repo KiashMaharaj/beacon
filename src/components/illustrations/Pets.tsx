@@ -5,7 +5,7 @@ interface IlloProps {
   className?: string;
 }
 
-/** A single paw print — used as a decorative motif throughout. */
+/** A single paw print - used as a decorative motif throughout. */
 export function PawPrint({ className }: IlloProps) {
   return (
     <svg viewBox="0 0 32 32" className={cn('h-6 w-6', className)} fill="currentColor" aria-hidden>
@@ -18,7 +18,7 @@ export function PawPrint({ className }: IlloProps) {
   );
 }
 
-/** Happy sitting dog — warm and elegant, not childish. */
+/** Happy sitting dog - warm and elegant, not childish. */
 export function DogIllustration({ className }: IlloProps) {
   return (
     <svg viewBox="0 0 200 200" className={cn('h-40 w-40', className)} fill="none" role="img" aria-label="Happy dog">
@@ -113,7 +113,7 @@ export function CatIllustration({ className }: IlloProps) {
   );
 }
 
-/** Small friendly rabbit — represents "other" pets. */
+/** Small friendly rabbit - represents "other" pets. */
 export function OtherPetIllustration({ className }: IlloProps) {
   return (
     <svg viewBox="0 0 200 200" className={cn('h-40 w-40', className)} fill="none" role="img" aria-label="Small pet">

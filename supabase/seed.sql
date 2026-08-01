@@ -1,4 +1,4 @@
--- Beacon — optional seed data for a populated demo environment.
+-- Beacon: optional seed data for a populated demo environment.
 -- Run against a Supabase project AFTER creating a demo auth user and
 -- replacing the reporter_id below with that user's uuid.
 -- (The app also ships with in-memory demo data for zero-config exploration.)

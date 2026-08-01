@@ -1,4 +1,4 @@
-// Beacon — Supabase generated-style types.
+// Beacon - Supabase generated-style types.
 // Kept in sync with supabase/migrations. Regenerate with:
 //   supabase gen types typescript --project-id <id> > src/lib/database.types.ts
 
@@ -37,6 +37,7 @@ export interface Database {
           phone?: string | null;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+        Relationships: [];
       };
       pet_reports: {
         Row: {
@@ -69,6 +70,7 @@ export interface Database {
           'id' | 'created_at' | 'updated_at' | 'status' | 'reunited_at'
         > & { id?: string; status?: ReportStatus };
         Update: Partial<Database['public']['Tables']['pet_reports']['Row']>;
+        Relationships: [];
       };
       sightings: {
         Row: {
@@ -88,6 +90,7 @@ export interface Database {
           'id' | 'created_at'
         > & { id?: string };
         Update: Partial<Database['public']['Tables']['sightings']['Row']>;
+        Relationships: [];
       };
       alert_areas: {
         Row: {
@@ -105,6 +108,7 @@ export interface Database {
           id?: string;
         };
         Update: Partial<Database['public']['Tables']['alert_areas']['Row']>;
+        Relationships: [];
       };
       notification_prefs: {
         Row: {
@@ -115,8 +119,16 @@ export interface Database {
           species_filter: AlertSpeciesFilter;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['notification_prefs']['Row'], 'updated_at'>;
+        Insert: {
+          user_id: string;
+          alerts_enabled?: boolean;
+          push_token?: string | null;
+          default_radius_km?: number;
+          species_filter?: AlertSpeciesFilter;
+          updated_at?: string;
+        };
         Update: Partial<Database['public']['Tables']['notification_prefs']['Row']>;
+        Relationships: [];
       };
       matches: {
         Row: {
@@ -127,13 +139,15 @@ export interface Database {
           status: MatchStatus;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['matches']['Row'], 'id' | 'created_at'> & {
+        Insert: Omit<Database['public']['Tables']['matches']['Row'], 'id' | 'created_at' | 'status'> & {
           id?: string;
+          status?: MatchStatus;
         };
         Update: Partial<Database['public']['Tables']['matches']['Row']>;
+        Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: { [_ in never]: never };
     Functions: {
       distance_km: {
         Args: { lat1: number; lng1: number; lat2: number; lng2: number };

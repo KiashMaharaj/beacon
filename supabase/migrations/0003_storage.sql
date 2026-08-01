@@ -1,4 +1,4 @@
--- Beacon — Storage bucket for pet photos & RLS on objects.
+-- Beacon - Storage bucket for pet photos & RLS on objects.
 
 insert into storage.buckets (id, name, public)
 values ('pet-photos', 'pet-photos', true)

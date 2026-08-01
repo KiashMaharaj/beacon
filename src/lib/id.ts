@@ -1,4 +1,4 @@
-// Beacon — small id helper that works in browser & test environments.
+// Beacon - small id helper that works in browser & test environments.
 export function uid(prefix = 'id'): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return `${prefix}-${crypto.randomUUID()}`;

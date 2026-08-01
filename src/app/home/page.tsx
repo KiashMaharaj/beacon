@@ -17,7 +17,7 @@ import { BellIcon, ChevronRightIcon, PlusIcon, SparkleIcon, EyeIcon } from '@/co
 const tips = [
   {
     title: 'Check quiet hiding spots',
-    body: 'Frightened cats often stay within a few houses — check sheds, bushes and under cars at dusk.',
+    body: 'Frightened cats often stay within a few houses, so check sheds, bushes and under cars at dusk.',
   },
   {
     title: 'Share the beacon',
@@ -25,7 +25,7 @@ const tips = [
   },
   {
     title: 'Leave familiar scents',
-    body: 'Place their bed or a worn t-shirt outside — familiar smells help pets find their way back.',
+    body: 'Place their bed or a worn t-shirt outside. Familiar smells help pets find their way back.',
   },
 ];
 

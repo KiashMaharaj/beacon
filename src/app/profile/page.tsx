@@ -38,8 +38,8 @@ function ProfileContent() {
     [reports, user.id],
   );
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     router.replace('/welcome');
   };
 

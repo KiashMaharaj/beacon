@@ -1,4 +1,4 @@
-// Beacon — geospatial helpers (no external dependency, Haversine formula).
+// Beacon - geospatial helpers (no external dependency, Haversine formula).
 
 export interface LatLng {
   lat: number;

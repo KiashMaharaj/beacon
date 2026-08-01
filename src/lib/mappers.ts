@@ -1,4 +1,4 @@
-// Beacon — map Supabase rows <-> domain view models.
+// Beacon - map Supabase rows <-> domain view models.
 
 import type { Database } from './database.types';
 import type { AlertArea, PetReport, Sighting } from './types';

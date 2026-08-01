@@ -1,4 +1,4 @@
--- Beacon — Row Level Security policies
+-- Beacon - Row Level Security policies
 -- Principle: reports and sightings are community-visible (that's the point),
 -- but only owners can mutate their own rows.
 

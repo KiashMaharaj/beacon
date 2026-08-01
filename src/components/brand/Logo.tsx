@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn';
 
 /**
- * Beacon logo — an original mark combining a beacon/lighthouse beam,
+ * Beacon logo - an original mark combining a beacon/lighthouse beam,
  * a location pin silhouette, and a paw print at its heart.
  */
 export function LogoMark({ className }: { className?: string }) {

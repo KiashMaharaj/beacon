@@ -1,15 +1,25 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useEffect, useRef, useState } from 'react';
 import { appConfig } from '@/lib/config';
 import type { GeoPoint } from '@/lib/types';
+import { searchPlaces, reverseGeocode, type GeoResult } from '@/lib/geocode';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
-import { MapPinIcon } from '@/components/ui/icons';
+import { MapPinIcon, SearchIcon } from '@/components/ui/icons';
+
+const LeafletMap = dynamic(() => import('@/components/map/LeafletMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-56 w-full animate-pulse bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-[#0f2a25] dark:to-[#14231f]" />
+  ),
+});
 
 /**
- * Tap-to-place location picker on a stylised map, with optional device
- * geolocation. Emits a GeoPoint (lat/lng + label).
+ * Location picker with real geocoding. Type an address to search, tap or drag
+ * the pin to fine-tune, or use the device's location. Emits a GeoPoint whose
+ * label is filled from reverse geocoding when the user hasn't typed one.
  */
 export function LocationPicker({
   value,
@@ -18,41 +28,70 @@ export function LocationPicker({
   value: GeoPoint | null | undefined;
   onChange: (p: GeoPoint) => void;
 }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<GeoResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const labelEdited = useRef(false);
+
   const center = value ?? { ...appConfig.defaultCenter, label: '' };
-  const W = 360;
-  const H = 200;
-  const scale = 3000;
 
-  const point = value
-    ? {
-        x: Math.max(16, Math.min(W - 16, W / 2 + (value.lng - appConfig.defaultCenter.lng) * scale)),
-        y: Math.max(16, Math.min(H - 16, H / 2 - (value.lat - appConfig.defaultCenter.lat) * scale)),
-      }
-    : { x: W / 2, y: H / 2 };
+  // Debounced forward-geocode as the user types.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) {
+      setResults([]);
+      return;
+    }
+    setSearching(true);
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      const found = await searchPlaces(q, ctrl.signal);
+      setResults(found);
+      setOpen(found.length > 0);
+      setSearching(false);
+    }, 400);
+    return () => {
+      ctrl.abort();
+      clearTimeout(t);
+    };
+  }, [query]);
 
-  const handleTap = (e: React.MouseEvent<SVGSVGElement>) => {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * W;
-    const y = ((e.clientY - rect.top) / rect.height) * H;
-    const lng = appConfig.defaultCenter.lng + (x - W / 2) / scale;
-    const lat = appConfig.defaultCenter.lat - (y - H / 2) / scale;
-    onChange({ lat, lng, label: value?.label ?? '' });
+  // Close the results dropdown on outside click.
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+
+  const choose = (r: GeoResult) => {
+    labelEdited.current = true;
+    onChange({ lat: r.lat, lng: r.lng, label: r.label });
+    setQuery(r.label);
+    setResults([]);
+    setOpen(false);
+  };
+
+  // When the pin moves (tap/drag/geolocation) fill the label if the user
+  // hasn't typed their own, so the report always carries a readable place.
+  const placePin = async (lat: number, lng: number, fallback?: string) => {
+    onChange({ lat, lng, label: labelEdited.current ? value?.label ?? fallback ?? '' : fallback ?? '' });
+    if (!labelEdited.current) {
+      const name = await reverseGeocode(lat, lng);
+      if (name) onChange({ lat, lng, label: name });
+    }
   };
 
   const useMyLocation = () => {
     if (!('geolocation' in navigator)) return;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        onChange({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          label: value?.label ?? 'My current location',
-        });
+      async (pos) => {
+        await placePin(pos.coords.latitude, pos.coords.longitude, 'My current location');
         setLocating(false);
       },
       () => setLocating(false),
@@ -62,50 +101,67 @@ export function LocationPicker({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-3xl border border-white/60 dark:border-stone-800">
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full cursor-crosshair touch-none"
-          onClick={handleTap}
-          role="img"
-          aria-label="Tap the map to set the location"
-        >
-          <rect width={W} height={H} fill="#ecfdf5" className="dark:fill-[#0f2a25]" />
-          <path d={`M0 130c60 18 100-10 160 6s120 26 200 6v${H}H0Z`} fill="#a7f3d0" opacity="0.5" />
-          <g stroke="#ffffff" strokeWidth="7" opacity="0.85" strokeLinecap="round" className="dark:opacity-20">
-            <path d="M30 20 130 200" />
-            <path d="M0 84 360 60" />
-            <path d="M250 0 300 200" />
-          </g>
-          <g stroke="#fcd34d" strokeWidth="2.5" opacity="0.8" strokeLinecap="round">
-            <path d="M0 84 360 60" />
-          </g>
-          <circle cx="70" cy="140" r="20" fill="#86efac" opacity="0.6" />
-          {value && (
-            <g transform={`translate(${point.x - 12} ${point.y - 30})`} className="animate-scale-in">
-              <ellipse cx="12" cy="32" rx="9" ry="3" fill="#000" opacity="0.18" />
-              <path d="M12 0C5 0 0 5.4 0 12.4 0 21 12 32 12 32s12-11 12-19.6C24 5.4 19 0 12 0Z" fill="#f97316" />
-              <circle cx="12" cy="12" r="5" fill="#fff7ed" />
-            </g>
-          )}
-        </svg>
+      {/* Search */}
+      <div ref={boxRef} className="relative">
+        <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" />
+        <Input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            labelEdited.current = true;
+          }}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          placeholder="Search for a street, park or place…"
+          className="pl-11"
+          aria-label="Search for a location"
+          autoComplete="off"
+        />
+        {searching && (
+          <span className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-beacon-300 border-t-beacon-500" />
+        )}
+        {open && results.length > 0 && (
+          <ul className="absolute z-[1000] mt-1.5 max-h-64 w-full overflow-auto rounded-2xl border border-stone-200 bg-white p-1.5 shadow-float dark:border-stone-700 dark:bg-stone-900">
+            {results.map((r, i) => (
+              <li key={`${r.lat}-${r.lng}-${i}`}>
+                <button
+                  type="button"
+                  onClick={() => choose(r)}
+                  className="flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition hover:bg-beacon-50 dark:hover:bg-stone-800"
+                >
+                  <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0 text-beacon-500" />
+                  <span className="text-sm text-ink-soft dark:text-stone-300">{r.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Interactive map */}
+      <div className="h-56 overflow-hidden rounded-3xl border border-white/60 dark:border-stone-800">
+        <LeafletMap
+          center={{ lat: center.lat, lng: center.lng }}
+          marker={value ? { lat: value.lat, lng: value.lng } : null}
+          markerDraggable
+          interactive
+          onPick={(p) => placePin(p.lat, p.lng)}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="outline" size="sm" onClick={useMyLocation} loading={locating}>
           <MapPinIcon className="h-4 w-4" />
           Use my location
         </Button>
-        <span className="text-xs text-ink-muted">or tap the map</span>
+        <span className="text-xs text-ink-muted">or tap the map to drop a pin</span>
       </div>
 
-      <Input
-        placeholder="Add a place name (e.g. Riverside Park)"
-        value={value?.label ?? ''}
-        onChange={(e) => onChange({ ...center, label: e.target.value })}
-        aria-label="Location name"
-      />
+      {value?.label && (
+        <p className="flex items-center gap-1.5 rounded-2xl bg-beacon-50 px-3.5 py-2.5 text-sm text-ink-soft dark:bg-beacon-500/10 dark:text-stone-300">
+          <MapPinIcon className="h-4 w-4 shrink-0 text-beacon-500" />
+          {value.label}
+        </p>
+      )}
     </div>
   );
 }

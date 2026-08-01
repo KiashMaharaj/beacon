@@ -9,15 +9,13 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { distanceKm } from './geo';
 import { uid } from './id';
 import { findMatches, type ScoredMatch } from './matching';
-import {
-  DEMO_USER,
-  demoAreas,
-  demoPrefs,
-  demoReports,
-} from './demo-data';
+import { DEMO_USER, demoAreas, demoPrefs, demoReports } from './demo-data';
+import { getBrowserClient } from './supabase/client';
+import * as repo from './supabase/repo';
 import type {
   AlertArea,
   NotificationPrefs,
@@ -25,48 +23,41 @@ import type {
   Sighting,
   SpeciesFilter,
 } from './types';
+import type { NewReportInput } from './store-types';
 
-const STORAGE_KEY = 'beacon.state.v1';
+export type { NewReportInput };
 
-interface PersistedState {
+const DEMO_KEY = 'beacon.state.v1';
+const ONBOARD_KEY = 'beacon.onboarded.v1';
+
+interface Viewer {
+  id: string;
+  name: string;
+  avatarUrl?: string | null;
+  email?: string | null;
+}
+
+interface DemoState {
   reports: PetReport[];
   areas: AlertArea[];
   prefs: NotificationPrefs;
-  onboarded: boolean;
   signedIn: boolean;
 }
 
-function initialState(): PersistedState {
-  return {
-    reports: demoReports,
-    areas: demoAreas,
-    prefs: demoPrefs,
-    onboarded: false,
-    signedIn: false,
-  };
+function defaultPrefs(userId: string): NotificationPrefs {
+  return { userId, alertsEnabled: false, defaultRadiusKm: 3, speciesFilter: 'all' };
 }
 
-export interface NewReportInput {
-  kind: 'missing' | 'found';
-  name?: string | null;
-  species: PetReport['species'];
-  breed?: string | null;
-  colour?: string | null;
-  age?: string | null;
-  size?: PetReport['size'];
-  description?: string | null;
-  photoUrl?: string | null;
-  lastSeenAt?: string | null;
-  location?: PetReport['location'];
-  alertRadiusKm?: number | null;
-  stillHasPet?: boolean | null;
-  notes?: string | null;
-  contactPref: PetReport['contactPref'];
+export interface SignUpInput {
+  name: string;
+  email: string;
+  password: string;
 }
 
 interface BeaconContextValue {
   ready: boolean;
-  user: typeof DEMO_USER;
+  isLive: boolean;
+  user: Viewer;
   signedIn: boolean;
   onboarded: boolean;
   reports: PetReport[];
@@ -78,71 +69,172 @@ interface BeaconContextValue {
   withDistance: (reports: PetReport[]) => PetReport[];
   getReport: (id: string) => PetReport | undefined;
 
-  // actions
-  signIn: (name?: string) => void;
-  signOut: () => void;
+  // auth
+  signInDemo: (name?: string) => void;
+  signUpWithEmail: (input: SignUpInput) => Promise<{ needsConfirmation: boolean }>;
+  signInWithEmail: (input: { email: string; password: string }) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
   completeOnboarding: () => void;
   setViewerLocation: (loc: { lat: number; lng: number } | null) => void;
 
-  createReport: (input: NewReportInput) => PetReport;
-  addSighting: (reportId: string, s: Omit<Sighting, 'id' | 'reportId' | 'createdAt'>) => void;
-  markReunited: (reportId: string) => void;
+  // reports & sightings
+  createReport: (input: NewReportInput) => Promise<PetReport>;
+  addSighting: (
+    reportId: string,
+    s: Omit<Sighting, 'id' | 'reportId' | 'createdAt'>,
+  ) => Promise<void>;
+  markReunited: (reportId: string) => Promise<void>;
   matchesForFound: (found: PetReport) => ScoredMatch[];
+  notifyOwnerOfMatch: (foundId: string, missingId: string, score: number) => Promise<void>;
 
-  updatePrefs: (patch: Partial<NotificationPrefs>) => void;
-  enableAlerts: () => void;
-  addArea: (area: Omit<AlertArea, 'id' | 'userId' | 'createdAt'>) => void;
-  updateArea: (id: string, patch: Partial<AlertArea>) => void;
-  removeArea: (id: string) => void;
+  // alerts
+  updatePrefs: (patch: Partial<NotificationPrefs>) => Promise<void>;
+  enableAlerts: () => Promise<void>;
+  addArea: (area: Omit<AlertArea, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
+  updateArea: (id: string, patch: Partial<AlertArea>) => Promise<void>;
+  removeArea: (id: string) => Promise<void>;
 }
 
 const BeaconContext = createContext<BeaconContextValue | null>(null);
 
 export function BeaconProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PersistedState>(initialState);
+  const client = useMemo(() => getBrowserClient(), []);
+  const isLive = client !== null;
+
+  const [reports, setReports] = useState<PetReport[]>(isLive ? [] : demoReports);
+  const [areas, setAreas] = useState<AlertArea[]>(isLive ? [] : demoAreas);
+  const [prefs, setPrefs] = useState<NotificationPrefs>(isLive ? defaultPrefs('') : demoPrefs);
+  const [viewer, setViewer] = useState<Viewer>(DEMO_USER);
+  const [session, setSession] = useState<Session | null>(null);
+  const [demoSignedIn, setDemoSignedIn] = useState(false);
+  const [onboarded, setOnboarded] = useState(false);
   const [ready, setReady] = useState(false);
   const [viewerLocation, setViewerLocationState] = useState<{ lat: number; lng: number } | null>(
     null,
   );
 
-  // Hydrate from localStorage once on mount.
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<PersistedState>;
-        setState((prev) => ({
-          reports: parsed.reports ?? prev.reports,
-          areas: parsed.areas ?? prev.areas,
-          prefs: parsed.prefs ?? prev.prefs,
-          onboarded: parsed.onboarded ?? prev.onboarded,
-          signedIn: parsed.signedIn ?? prev.signedIn,
-        }));
-      }
-    } catch {
-      // ignore corrupt storage
-    }
-    setReady(true);
-  }, []);
+  const signedIn = isLive ? session != null : demoSignedIn;
 
-  // Persist on change (after hydration).
+  // Load a signed-in user's profile and data from Supabase.
+  const loadLive = useCallback(
+    async (s: Session) => {
+      if (!client) return;
+      const userId = s.user.id;
+      const meta = s.user.user_metadata ?? {};
+      const profile = await repo.fetchProfile(client, userId);
+      setViewer({
+        id: userId,
+        name:
+          profile?.full_name ??
+          (meta.full_name as string | undefined) ??
+          (meta.name as string | undefined) ??
+          s.user.email?.split('@')[0] ??
+          'Neighbour',
+        avatarUrl: profile?.avatar_url ?? (meta.avatar_url as string | undefined) ?? null,
+        email: s.user.email,
+      });
+      const [rep, ar, pr] = await Promise.all([
+        repo.fetchReports(client),
+        repo.fetchAreas(client, userId),
+        repo.fetchPrefs(client, userId),
+      ]);
+      setReports(rep);
+      setAreas(ar);
+      setPrefs(pr ?? defaultPrefs(userId));
+    },
+    [client],
+  );
+
+  // Boot: read onboarding flag, then either hydrate the demo store or resolve
+  // the Supabase session.
   useEffect(() => {
-    if (!ready) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      setOnboarded(window.localStorage.getItem(ONBOARD_KEY) === '1');
     } catch {
-      // storage may be unavailable (private mode) — non-fatal
+      /* storage unavailable */
     }
-  }, [state, ready]);
+
+    if (!client) {
+      try {
+        const raw = window.localStorage.getItem(DEMO_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as Partial<DemoState>;
+          if (parsed.reports) setReports(parsed.reports);
+          if (parsed.areas) setAreas(parsed.areas);
+          if (parsed.prefs) setPrefs(parsed.prefs);
+          if (parsed.signedIn) setDemoSignedIn(true);
+        }
+      } catch {
+        /* ignore corrupt storage */
+      }
+      setReady(true);
+      return;
+    }
+
+    let active = true;
+    client.auth.getSession().then(async ({ data }) => {
+      if (!active) return;
+      setSession(data.session);
+      if (data.session) await loadLive(data.session);
+      setReady(true);
+    });
+    const { data: sub } = client.auth.onAuthStateChange(async (_event, s) => {
+      setSession(s);
+      if (s) {
+        await loadLive(s);
+      } else {
+        setReports([]);
+        setAreas([]);
+        setViewer(DEMO_USER);
+      }
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [client, loadLive]);
+
+  // Persist the demo store between visits (demo mode only).
+  useEffect(() => {
+    if (isLive || !ready) return;
+    try {
+      const snapshot: DemoState = { reports, areas, prefs, signedIn: demoSignedIn };
+      window.localStorage.setItem(DEMO_KEY, JSON.stringify(snapshot));
+    } catch {
+      /* private mode: non-fatal */
+    }
+  }, [isLive, ready, reports, areas, prefs, demoSignedIn]);
+
+  // Realtime: keep the community feed fresh while signed in.
+  useEffect(() => {
+    if (!client || !session) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const refetch = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        repo.fetchReports(client).then(setReports).catch(() => {});
+      }, 400);
+    };
+    const channel = client
+      .channel('beacon-feed')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pet_reports' }, refetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sightings' }, refetch)
+      .subscribe();
+    return () => {
+      clearTimeout(timer);
+      client.removeChannel(channel);
+    };
+  }, [client, session]);
 
   const setViewerLocation = useCallback((loc: { lat: number; lng: number } | null) => {
     setViewerLocationState(loc);
   }, []);
 
   const withDistance = useCallback(
-    (reports: PetReport[]): PetReport[] => {
-      if (!viewerLocation) return reports.map((r) => ({ ...r, distanceKm: null }));
-      return reports.map((r) => ({
+    (list: PetReport[]): PetReport[] => {
+      if (!viewerLocation) return list.map((r) => ({ ...r, distanceKm: null }));
+      return list.map((r) => ({
         ...r,
         distanceKm: r.location ? distanceKm(viewerLocation, r.location) : null,
       }));
@@ -150,131 +242,277 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
     [viewerLocation],
   );
 
-  const getReport = useCallback(
-    (id: string) => state.reports.find((r) => r.id === id),
-    [state.reports],
+  const getReport = useCallback((id: string) => reports.find((r) => r.id === id), [reports]);
+
+  // ----- Auth ------------------------------------------------------------
+  const signInDemo = useCallback((name?: string) => {
+    setDemoSignedIn(true);
+    if (name) {
+      DEMO_USER.name = name;
+      setViewer((v) => ({ ...v, name }));
+    }
+  }, []);
+
+  const signUpWithEmail = useCallback(
+    async ({ name, email, password }: SignUpInput) => {
+      if (!client) {
+        signInDemo(name);
+        return { needsConfirmation: false };
+      }
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+      return { needsConfirmation: data.session == null };
+    },
+    [client, signInDemo],
   );
 
-  const signIn = useCallback((name?: string) => {
-    setState((s) => ({ ...s, signedIn: true }));
-    if (name) DEMO_USER.name = name;
-  }, []);
+  const signInWithEmail = useCallback(
+    async ({ email, password }: { email: string; password: string }) => {
+      if (!client) {
+        signInDemo();
+        return;
+      }
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    },
+    [client, signInDemo],
+  );
 
-  const signOut = useCallback(() => {
-    setState((s) => ({ ...s, signedIn: false }));
-  }, []);
+  const signInWithGoogle = useCallback(async () => {
+    if (!client) {
+      signInDemo();
+      return;
+    }
+    const { error } = await client.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) throw error;
+  }, [client, signInDemo]);
+
+  const signOut = useCallback(async () => {
+    if (client) await client.auth.signOut();
+    setDemoSignedIn(false);
+    setSession(null);
+  }, [client]);
 
   const completeOnboarding = useCallback(() => {
-    setState((s) => ({ ...s, onboarded: true }));
+    setOnboarded(true);
+    try {
+      window.localStorage.setItem(ONBOARD_KEY, '1');
+    } catch {
+      /* non-fatal */
+    }
   }, []);
 
-  const createReport = useCallback((input: NewReportInput): PetReport => {
-    const iso = new Date().toISOString();
-    const report: PetReport = {
-      id: uid('r'),
-      reporterId: DEMO_USER.id,
-      reporter: { id: DEMO_USER.id, name: DEMO_USER.name, avatarUrl: DEMO_USER.avatarUrl },
-      kind: input.kind,
-      status: 'active',
-      name: input.name ?? null,
-      species: input.species,
-      breed: input.breed ?? null,
-      colour: input.colour ?? null,
-      age: input.age ?? null,
-      size: input.size ?? null,
-      description: input.description ?? null,
-      photoUrl: input.photoUrl ?? null,
-      lastSeenAt: input.lastSeenAt ?? iso,
-      location: input.location ?? null,
-      alertRadiusKm: input.alertRadiusKm ?? 3,
-      stillHasPet: input.stillHasPet ?? null,
-      notes: input.notes ?? null,
-      contactPref: input.contactPref,
-      createdAt: iso,
-      updatedAt: iso,
-      sightings: [],
-    };
-    setState((s) => ({ ...s, reports: [report, ...s.reports] }));
-    return report;
-  }, []);
+  // ----- Reports & sightings --------------------------------------------
+  const createReport = useCallback(
+    async (input: NewReportInput): Promise<PetReport> => {
+      if (client && session) {
+        const profileLike = {
+          id: viewer.id,
+          full_name: viewer.name,
+          avatar_url: viewer.avatarUrl ?? null,
+          phone: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        const report = await repo.insertReport(client, profileLike, input);
+        setReports((s) => [report, ...s]);
+        return report;
+      }
+
+      const iso = new Date().toISOString();
+      const report: PetReport = {
+        id: uid('r'),
+        reporterId: viewer.id,
+        reporter: { id: viewer.id, name: viewer.name, avatarUrl: viewer.avatarUrl },
+        kind: input.kind,
+        status: 'active',
+        name: input.name ?? null,
+        species: input.species,
+        breed: input.breed ?? null,
+        colour: input.colour ?? null,
+        age: input.age ?? null,
+        size: input.size ?? null,
+        description: input.description ?? null,
+        photoUrl: input.photoUrl ?? null,
+        lastSeenAt: input.lastSeenAt ?? iso,
+        location: input.location ?? null,
+        alertRadiusKm: input.alertRadiusKm ?? 3,
+        stillHasPet: input.stillHasPet ?? null,
+        notes: input.notes ?? null,
+        contactPref: input.contactPref,
+        createdAt: iso,
+        updatedAt: iso,
+        sightings: [],
+      };
+      setReports((s) => [report, ...s]);
+      return report;
+    },
+    [client, session, viewer],
+  );
 
   const addSighting = useCallback(
-    (reportId: string, s: Omit<Sighting, 'id' | 'reportId' | 'createdAt'>) => {
+    async (reportId: string, s: Omit<Sighting, 'id' | 'reportId' | 'createdAt'>) => {
+      if (client && session) {
+        const saved = await repo.insertSighting(client, reportId, viewer.id, {
+          seenAt: s.seenAt,
+          location: s.location ?? null,
+          photoUrl: s.photoUrl ?? null,
+          notes: s.notes ?? null,
+        });
+        const withReporter: Sighting = {
+          ...saved,
+          reporter: { id: viewer.id, name: viewer.name },
+        };
+        setReports((prev) =>
+          prev.map((r) =>
+            r.id === reportId
+              ? { ...r, sightings: [withReporter, ...(r.sightings ?? [])], updatedAt: saved.createdAt }
+              : r,
+          ),
+        );
+        return;
+      }
+
       const sighting: Sighting = {
         ...s,
         id: uid('s'),
         reportId,
         createdAt: new Date().toISOString(),
       };
-      setState((prev) => ({
-        ...prev,
-        reports: prev.reports.map((r) =>
+      setReports((prev) =>
+        prev.map((r) =>
           r.id === reportId
             ? { ...r, sightings: [sighting, ...(r.sightings ?? [])], updatedAt: sighting.createdAt }
             : r,
         ),
-      }));
+      );
     },
-    [],
+    [client, session, viewer],
   );
 
-  const markReunited = useCallback((reportId: string) => {
-    const iso = new Date().toISOString();
-    setState((prev) => ({
-      ...prev,
-      reports: prev.reports.map((r) =>
-        r.id === reportId ? { ...r, status: 'reunited', reunitedAt: iso, updatedAt: iso } : r,
-      ),
-    }));
-  }, []);
+  const markReunited = useCallback(
+    async (reportId: string) => {
+      if (client && session) await repo.setReportStatus(client, reportId, 'reunited');
+      const iso = new Date().toISOString();
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === reportId ? { ...r, status: 'reunited', reunitedAt: iso, updatedAt: iso } : r,
+        ),
+      );
+    },
+    [client, session],
+  );
 
   const matchesForFound = useCallback(
-    (found: PetReport) => findMatches(found, state.reports),
-    [state.reports],
+    (found: PetReport) => findMatches(found, reports),
+    [reports],
   );
 
-  const updatePrefs = useCallback((patch: Partial<NotificationPrefs>) => {
-    setState((s) => ({ ...s, prefs: { ...s.prefs, ...patch } }));
-  }, []);
+  const notifyOwnerOfMatch = useCallback(
+    async (foundId: string, missingId: string, score: number) => {
+      if (client && session) {
+        try {
+          await repo.insertMatch(client, foundId, missingId, Math.round(score));
+        } catch {
+          /* best-effort: the finder still sees the confirmation */
+        }
+      }
+    },
+    [client, session],
+  );
 
-  const enableAlerts = useCallback(() => {
-    setState((s) => ({ ...s, prefs: { ...s.prefs, alertsEnabled: true } }));
-  }, []);
+  // ----- Alerts ----------------------------------------------------------
+  const updatePrefs = useCallback(
+    async (patch: Partial<NotificationPrefs>) => {
+      setPrefs((p) => ({ ...p, ...patch }));
+      if (client && session) {
+        try {
+          await repo.upsertPrefs(client, viewer.id, patch);
+        } catch {
+          /* non-fatal */
+        }
+      }
+    },
+    [client, session, viewer.id],
+  );
 
-  const addArea = useCallback((area: Omit<AlertArea, 'id' | 'userId' | 'createdAt'>) => {
-    const newArea: AlertArea = {
-      ...area,
-      id: uid('a'),
-      userId: DEMO_USER.id,
-      createdAt: new Date().toISOString(),
-    };
-    setState((s) => ({ ...s, areas: [...s.areas, newArea] }));
-  }, []);
+  const enableAlerts = useCallback(async () => {
+    await updatePrefs({ alertsEnabled: true });
+  }, [updatePrefs]);
 
-  const updateArea = useCallback((id: string, patch: Partial<AlertArea>) => {
-    setState((s) => ({
-      ...s,
-      areas: s.areas.map((a) => (a.id === id ? { ...a, ...patch } : a)),
-    }));
-  }, []);
+  const addArea = useCallback(
+    async (area: Omit<AlertArea, 'id' | 'userId' | 'createdAt'>) => {
+      if (client && session) {
+        const saved = await repo.insertArea(client, viewer.id, area);
+        setAreas((s) => [...s, saved]);
+        return;
+      }
+      const newArea: AlertArea = {
+        ...area,
+        id: uid('a'),
+        userId: viewer.id,
+        createdAt: new Date().toISOString(),
+      };
+      setAreas((s) => [...s, newArea]);
+    },
+    [client, session, viewer.id],
+  );
 
-  const removeArea = useCallback((id: string) => {
-    setState((s) => ({ ...s, areas: s.areas.filter((a) => a.id !== id) }));
-  }, []);
+  const updateArea = useCallback(
+    async (id: string, patch: Partial<AlertArea>) => {
+      setAreas((s) => s.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+      if (client && session) {
+        try {
+          await repo.updateAreaRow(client, id, patch);
+        } catch {
+          /* non-fatal */
+        }
+      }
+    },
+    [client, session],
+  );
+
+  const removeArea = useCallback(
+    async (id: string) => {
+      setAreas((s) => s.filter((a) => a.id !== id));
+      if (client && session) {
+        try {
+          await repo.deleteAreaRow(client, id);
+        } catch {
+          /* non-fatal */
+        }
+      }
+    },
+    [client, session],
+  );
 
   const value = useMemo<BeaconContextValue>(
     () => ({
       ready,
-      user: DEMO_USER,
-      signedIn: state.signedIn,
-      onboarded: state.onboarded,
-      reports: state.reports,
-      areas: state.areas,
-      prefs: state.prefs,
+      isLive,
+      user: viewer,
+      signedIn,
+      onboarded,
+      reports,
+      areas,
+      prefs,
       viewerLocation,
       withDistance,
       getReport,
-      signIn,
+      signInDemo,
+      signUpWithEmail,
+      signInWithEmail,
+      signInWithGoogle,
       signOut,
       completeOnboarding,
       setViewerLocation,
@@ -282,6 +520,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       addSighting,
       markReunited,
       matchesForFound,
+      notifyOwnerOfMatch,
       updatePrefs,
       enableAlerts,
       addArea,
@@ -290,11 +529,20 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
     }),
     [
       ready,
-      state,
+      isLive,
+      viewer,
+      signedIn,
+      onboarded,
+      reports,
+      areas,
+      prefs,
       viewerLocation,
       withDistance,
       getReport,
-      signIn,
+      signInDemo,
+      signUpWithEmail,
+      signInWithEmail,
+      signInWithGoogle,
       signOut,
       completeOnboarding,
       setViewerLocation,
@@ -302,6 +550,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       addSighting,
       markReunited,
       matchesForFound,
+      notifyOwnerOfMatch,
       updatePrefs,
       enableAlerts,
       addArea,

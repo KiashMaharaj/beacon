@@ -248,7 +248,7 @@ function AlertsContent() {
         <Card className="p-4">
           <p className="text-sm text-ink-soft dark:text-stone-300">
             Beacon is growing into your whole neighbourhood. Soon you&apos;ll be able to opt into
-            community safety alerts, estate notices, local recommendations and more — all with the
+            community safety alerts, estate notices, local recommendations and more, all with the
             same privacy-first approach.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">

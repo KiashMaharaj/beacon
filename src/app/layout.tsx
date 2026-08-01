@@ -4,7 +4,7 @@ import { BeaconProvider } from '@/lib/store';
 import { ThemeScript } from '@/components/ThemeScript';
 
 export const metadata: Metadata = {
-  title: 'Beacon — Helping neighbours bring pets home',
+  title: 'Beacon: Helping neighbours bring pets home',
   description:
     'Beacon is a neighbourhood community app that helps neighbours reunite lost pets with their owners.',
   applicationName: 'Beacon',

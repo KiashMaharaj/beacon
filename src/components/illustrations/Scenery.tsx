@@ -4,7 +4,7 @@ interface IlloProps {
   className?: string;
 }
 
-/** A cosy row of neighbourhood houses with a tree — used on onboarding & empty states. */
+/** A cosy row of neighbourhood houses with a tree - used on onboarding & empty states. */
 export function NeighbourhoodIllustration({ className }: IlloProps) {
   return (
     <svg viewBox="0 0 360 240" className={cn('w-full', className)} fill="none" role="img" aria-label="Neighbourhood">

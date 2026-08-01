@@ -1,4 +1,4 @@
-// Beacon — seed data for demo mode (no backend required).
+// Beacon - seed data for demo mode (no backend required).
 // Locations cluster around central London so the map & distance features feel real.
 // Photos are intentionally null so the app renders its original pet illustrations.
 
