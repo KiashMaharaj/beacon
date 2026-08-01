@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: 'The terms for using Beacon.',
 };
 
-const CONTACT_EMAIL = 'hello@beacon.app';
+const CONTACT_EMAIL = 'kiash.maharaj@gmail.com';
 const LAST_UPDATED = '1 August 2026';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

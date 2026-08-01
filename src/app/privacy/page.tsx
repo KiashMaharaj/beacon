@@ -7,9 +7,8 @@ export const metadata: Metadata = {
   description: 'How Beacon collects, uses and protects your information.',
 };
 
-// NOTE: update this to an address you actively monitor before publishing to
-// the Play Store; Google requires a working privacy contact.
-const CONTACT_EMAIL = 'privacy@beacon.app';
+// Contact address shown on the policy; Google requires a working privacy contact.
+const CONTACT_EMAIL = 'kiash.maharaj@gmail.com';
 const LAST_UPDATED = '1 August 2026';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
