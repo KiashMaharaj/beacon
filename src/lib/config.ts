@@ -1,7 +1,13 @@
 // Beacon - runtime configuration & feature detection.
 
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+// Accept both the classic `ANON_KEY` name and Supabase's newer
+// `PUBLISHABLE_KEY` name (its dashboard "Connect" snippet uses the latter), so
+// either copied verbatim just works.
+export const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  '';
 
 /**
  * When Supabase credentials are absent the app runs in "demo mode" against a
