@@ -113,6 +113,15 @@ function ProfileContent() {
         <p className="mt-6 text-center text-xs text-ink-muted/70">
           Beacon v1.0 · Helping neighbours bring pets home
         </p>
+        <p className="mt-2 text-center text-xs text-ink-muted/70">
+          <Link href="/privacy" className="underline hover:text-ink-soft">
+            Privacy Policy
+          </Link>{' '}
+          ·{' '}
+          <Link href="/terms" className="underline hover:text-ink-soft">
+            Terms of Service
+          </Link>
+        </p>
       </div>
     </AppShell>
   );

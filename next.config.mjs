@@ -7,6 +7,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
+  async rewrites() {
+    return [
+      // Digital Asset Links for the Play Store TWA.
+      { source: '/.well-known/assetlinks.json', destination: '/api/assetlinks' },
+    ];
+  },
 };
 
 export default nextConfig;

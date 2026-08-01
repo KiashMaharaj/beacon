@@ -3,18 +3,34 @@ import './globals.css';
 import { BeaconProvider } from '@/lib/store';
 import { ThemeScript } from '@/components/ThemeScript';
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://beacon-six-chi.vercel.app';
+
 export const metadata: Metadata = {
-  title: 'Beacon: Helping neighbours bring pets home',
+  title: {
+    default: 'Beacon: Helping neighbours bring pets home',
+    template: '%s · Beacon',
+  },
   description:
     'Beacon is a neighbourhood community app that helps neighbours reunite lost pets with their owners.',
   applicationName: 'Beacon',
-  metadataBase: new URL('https://beacon.local'),
+  metadataBase: new URL(siteUrl),
   icons: {
-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-    apple: [{ url: '/icon.svg' }],
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
   },
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Beacon' },
+  openGraph: {
+    type: 'website',
+    siteName: 'Beacon',
+    title: 'Beacon: Helping neighbours bring pets home',
+    description: 'Report lost or found pets, get nearby alerts, and reunite pets with their families.',
+    url: siteUrl,
+  },
 };
 
 export const viewport: Viewport = {

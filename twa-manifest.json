@@ -1,0 +1,49 @@
+{
+  "packageId": "app.beacon.twa",
+  "host": "beacon-six-chi.vercel.app",
+  "name": "Beacon",
+  "launcherName": "Beacon",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#f97316",
+  "themeColorDark": "#0c0a09",
+  "navigationColor": "#fff7ed",
+  "navigationColorDark": "#0c0a09",
+  "navigationDividerColor": "#fff7ed",
+  "navigationDividerColorDark": "#0c0a09",
+  "backgroundColor": "#fff7ed",
+  "enableNotifications": true,
+  "startUrl": "/?source=twa",
+  "iconUrl": "https://beacon-six-chi.vercel.app/icon-512.png",
+  "maskableIconUrl": "https://beacon-six-chi.vercel.app/maskable-512.png",
+  "monochromeIconUrl": "https://beacon-six-chi.vercel.app/icon-512.png",
+  "webManifestUrl": "https://beacon-six-chi.vercel.app/manifest.webmanifest",
+  "shortcuts": [
+    {
+      "name": "Report a missing pet",
+      "shortName": "Missing",
+      "url": "/report/missing?source=shortcut",
+      "chosenIconUrl": "https://beacon-six-chi.vercel.app/icon-192.png"
+    },
+    {
+      "name": "Report a found pet",
+      "shortName": "Found",
+      "url": "/report/found?source=shortcut",
+      "chosenIconUrl": "https://beacon-six-chi.vercel.app/icon-192.png"
+    }
+  ],
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "beacon"
+  },
+  "fallbackType": "customtabs",
+  "features": {},
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://beacon-six-chi.vercel.app/",
+  "minSdkVersion": 23,
+  "generatorApp": "bubblewrap-cli"
+}
