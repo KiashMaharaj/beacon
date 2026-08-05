@@ -4,7 +4,9 @@
 
 -- Extensions ---------------------------------------------------------------
 create extension if not exists "pgcrypto";      -- gen_random_uuid()
-create extension if not exists "postgis";        -- geography for radius queries (optional, degrades gracefully)
+-- NB: we intentionally do NOT enable PostGIS. Radius queries use the plain-SQL
+-- distance_km() haversine helper below, so we avoid PostGIS's spatial_ref_sys
+-- table (which sits in the public schema without RLS and trips the linter).
 
 -- Enums --------------------------------------------------------------------
 do $$ begin

@@ -1,6 +1,6 @@
 -- Beacon: complete database setup.
 -- Paste this whole file into the Supabase SQL Editor and Run once.
--- It applies migrations 0001-0004 in order (schema, RLS, storage, match policy).
+-- It applies migrations 0001-0005 in order (schema, RLS, storage, match policy, cleanup).
 -- Safe to re-run: every statement is idempotent (if not exists / drop-if-exists).
 
 
@@ -13,7 +13,9 @@
 
 -- Extensions ---------------------------------------------------------------
 create extension if not exists "pgcrypto";      -- gen_random_uuid()
-create extension if not exists "postgis";        -- geography for radius queries (optional, degrades gracefully)
+-- NB: we intentionally do NOT enable PostGIS. Radius queries use the plain-SQL
+-- distance_km() haversine helper below, so we avoid PostGIS's spatial_ref_sys
+-- table (which sits in the public schema without RLS and trips the linter).
 
 -- Enums --------------------------------------------------------------------
 do $$ begin
@@ -343,4 +345,22 @@ create policy "matches_insert_by_finder" on public.matches
         and r.kind = 'found'
     )
   );
+
+
+-- ====================================================================
+-- 0005_drop_unused_postgis.sql
+-- ====================================================================
+-- Beacon - remove the unused PostGIS extension.
+--
+-- An earlier version enabled PostGIS "just in case", but Beacon computes
+-- distances with the plain-SQL distance_km() haversine helper and never uses
+-- any PostGIS type or function. PostGIS creates public.spatial_ref_sys (a
+-- reference table with no RLS), which Supabase's security advisor flags as
+-- "rls_disabled_in_public". Dropping the extension removes that table and the
+-- warning. It holds only map-projection reference data, never user data.
+--
+-- Safe: nothing in this schema depends on PostGIS. No-op if it was never
+-- installed. Run this on existing databases (new setups skip PostGIS entirely).
+
+drop extension if exists postgis;
 
