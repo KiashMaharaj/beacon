@@ -448,33 +448,55 @@ function PetDetailContent() {
       </Modal>
 
       {/* Contact modal */}
-      <Modal open={showContact} onClose={() => setShowContact(false)} title={`Contact ${report.reporter?.name ?? 'the owner'}`}>
+      <Modal
+        open={showContact}
+        onClose={() => setShowContact(false)}
+        title={`Reach ${report.reporter?.name ?? 'the owner'}`}
+      >
         <div className="space-y-4">
           <div className="flex items-center gap-3 rounded-2xl bg-beacon-50 p-4 dark:bg-beacon-500/10">
             <Avatar name={report.reporter?.name ?? 'Neighbour'} size={44} />
             <div>
               <p className="font-bold text-ink dark:text-cream-50">{report.reporter?.name}</p>
               <p className="text-xs text-ink-muted dark:text-stone-400">
-                Prefers{' '}
-                {report.contactPref === 'in_app'
-                  ? 'in-app messages'
-                  : report.contactPref === 'phone'
-                    ? 'a phone call'
-                    : 'email'}
+                {report.contactPref === 'phone'
+                  ? 'Prefers a phone call or text'
+                  : report.contactPref === 'email'
+                    ? 'Prefers email'
+                    : 'Prefers to be reached through sightings'}
               </p>
             </div>
           </div>
-          <Button fullWidth onClick={() => { setShowContact(false); alert('Message sent through Beacon. The owner will be notified.'); }}>
-            {report.contactPref === 'phone' ? (
-              <>
-                <PhoneIcon className="h-5 w-5" /> Request phone call
-              </>
-            ) : (
-              'Send a message'
-            )}
-          </Button>
+
+          {report.contactPref === 'phone' && report.contactValue ? (
+            <a href={`tel:${report.contactValue.replace(/\s+/g, '')}`} className="block">
+              <Button fullWidth size="lg">
+                <PhoneIcon className="h-5 w-5" /> Call {report.contactValue}
+              </Button>
+            </a>
+          ) : report.contactPref === 'email' && report.contactValue ? (
+            <a href={`mailto:${report.contactValue}`} className="block">
+              <Button fullWidth size="lg">
+                Email {report.reporter?.name ?? 'the owner'}
+              </Button>
+            </a>
+          ) : (
+            <>
+              <p className="text-sm text-ink-soft dark:text-stone-300">
+                To protect privacy, Beacon only shares the details a neighbour chooses to. The best
+                way to help is to report a sighting - {report.reporter?.name ?? 'the owner'} is
+                notified right away.
+              </p>
+              <Link href={`/pets/${report.id}/sighting`} onClick={() => setShowContact(false)}>
+                <Button fullWidth size="lg">
+                  <EyeIcon className="h-5 w-5" /> Report a sighting
+                </Button>
+              </Link>
+            </>
+          )}
+
           <p className="text-center text-xs text-ink-muted">
-            Beacon keeps your details private until you choose to share them.
+            Only the details neighbours choose to share are ever shown.
           </p>
         </div>
       </Modal>

@@ -38,6 +38,7 @@ export function mapReport(
     stillHasPet: row.still_has_pet,
     notes: row.notes,
     contactPref: row.contact_pref,
+    contactValue: row.contact_value,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     reunitedAt: row.reunited_at,

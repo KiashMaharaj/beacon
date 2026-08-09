@@ -42,6 +42,7 @@ function EditContent() {
   const [radius, setRadius] = useState(report?.alertRadiusKm ?? 3);
   const [stillHasPet, setStillHasPet] = useState(report?.stillHasPet ?? true);
   const [contactPref, setContactPref] = useState<ContactPref>(report?.contactPref ?? 'in_app');
+  const [contactValue, setContactValue] = useState(report?.contactValue ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -86,6 +87,14 @@ function EditContent() {
       setError(isMissing ? 'Please set where they were last seen.' : 'Please set where you found them.');
       return;
     }
+    if (contactPref !== 'in_app' && !contactValue.trim()) {
+      setError(
+        contactPref === 'phone'
+          ? 'Add a phone number, or choose “Sightings only”.'
+          : 'Add an email, or choose “Sightings only”.',
+      );
+      return;
+    }
     setSaving(true);
     try {
       await updateReport(report.id, {
@@ -96,6 +105,7 @@ function EditContent() {
         photoUrl,
         location,
         contactPref,
+        contactValue: contactPref !== 'in_app' ? contactValue.trim() : null,
         ...(isMissing
           ? {
               name: name.trim(),
@@ -222,6 +232,22 @@ function EditContent() {
           <FieldLabel>How should neighbours reach you?</FieldLabel>
           <ContactPrefPicker value={contactPref} onChange={setContactPref} />
         </div>
+
+        {contactPref !== 'in_app' && (
+          <div>
+            <FieldLabel htmlFor="contactValue" required>
+              {contactPref === 'phone' ? 'Phone number to share' : 'Email to share'}
+            </FieldLabel>
+            <Input
+              id="contactValue"
+              type={contactPref === 'phone' ? 'tel' : 'email'}
+              inputMode={contactPref === 'phone' ? 'tel' : 'email'}
+              value={contactValue}
+              onChange={(e) => setContactValue(e.target.value)}
+              placeholder={contactPref === 'phone' ? 'e.g. 072 123 4567' : 'e.g. you@example.com'}
+            />
+          </div>
+        )}
 
         {error && (
           <p className="rounded-2xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600 dark:bg-rose-500/10">

@@ -19,6 +19,7 @@ import {
   SpeciesPicker,
 } from '@/components/pets/FormControls';
 import { LocationPicker } from '@/components/pets/LocationPicker';
+import { ConsentCheckbox } from '@/components/pets/ConsentCheckbox';
 import { PhotoUpload } from '@/components/pets/PhotoUpload';
 import { PetPhoto } from '@/components/pets/PetPhoto';
 import { MapView } from '@/components/pets/MapView';
@@ -51,6 +52,8 @@ function MissingForm() {
       size: 'medium',
       alertRadiusKm: 3,
       contactPref: 'in_app',
+      contactValue: '',
+      consent: false,
       lastSeenDate: todayISO(),
       lastSeenTime: nowTime(),
     },
@@ -80,6 +83,8 @@ function MissingForm() {
         location: data.location,
         alertRadiusKm: data.alertRadiusKm,
         contactPref: data.contactPref,
+        contactValue: data.contactValue?.trim() || null,
+        contactConsent: data.consent,
       });
       router.replace(`/pets/${report.id}?published=1`);
     } catch {
@@ -257,6 +262,24 @@ function MissingForm() {
             render={({ field }) => <ContactPrefPicker value={field.value} onChange={field.onChange} />}
           />
         </div>
+
+        {values.contactPref !== 'in_app' && (
+          <div>
+            <FieldLabel htmlFor="contactValue" required>
+              {values.contactPref === 'phone' ? 'Phone number to share' : 'Email to share'}
+            </FieldLabel>
+            <Input
+              id="contactValue"
+              type={values.contactPref === 'phone' ? 'tel' : 'email'}
+              inputMode={values.contactPref === 'phone' ? 'tel' : 'email'}
+              placeholder={values.contactPref === 'phone' ? 'e.g. 072 123 4567' : 'e.g. you@example.com'}
+              {...register('contactValue')}
+            />
+            <FieldError>{errors.contactValue?.message}</FieldError>
+          </div>
+        )}
+
+        <ConsentCheckbox registration={register('consent')} error={errors.consent?.message} />
 
         <Button type="submit" fullWidth size="lg">
           Preview beacon

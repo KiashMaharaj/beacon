@@ -25,6 +25,21 @@ export const missingReportSchema = z.object({
   location: geoPointSchema.nullish().refine((v) => v != null, 'Mark where they were last seen'),
   alertRadiusKm: z.number().min(1).max(10),
   contactPref: contactPrefEnum,
+  contactValue: z.string().max(120).optional().or(z.literal('')),
+  consent: z.boolean().refine((v) => v === true, {
+    message: 'Please agree to the terms to publish.',
+  }),
+}).superRefine((data, ctx) => {
+  if (data.contactPref !== 'in_app' && !data.contactValue?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['contactValue'],
+      message:
+        data.contactPref === 'phone'
+          ? 'Add a phone number, or choose "Sightings only".'
+          : 'Add an email, or choose "Sightings only".',
+    });
+  }
 });
 
 export type MissingReportForm = z.infer<typeof missingReportSchema>;
@@ -41,6 +56,21 @@ export const foundReportSchema = z.object({
   stillHasPet: z.boolean(),
   notes: z.string().max(600).optional().or(z.literal('')),
   contactPref: contactPrefEnum,
+  contactValue: z.string().max(120).optional().or(z.literal('')),
+  consent: z.boolean().refine((v) => v === true, {
+    message: 'Please agree to the terms to publish.',
+  }),
+}).superRefine((data, ctx) => {
+  if (data.contactPref !== 'in_app' && !data.contactValue?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['contactValue'],
+      message:
+        data.contactPref === 'phone'
+          ? 'Add a phone number, or choose "Sightings only".'
+          : 'Add an email, or choose "Sightings only".',
+    });
+  }
 });
 
 export type FoundReportForm = z.infer<typeof foundReportSchema>;

@@ -50,6 +50,7 @@ export interface PetReport {
   stillHasPet?: boolean | null;
   notes?: string | null;
   contactPref: ContactPref;
+  contactValue?: string | null;
   createdAt: string;
   updatedAt: string;
   reunitedAt?: string | null;

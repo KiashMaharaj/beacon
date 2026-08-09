@@ -1,6 +1,6 @@
 -- Beacon: complete database setup.
 -- Paste this whole file into the Supabase SQL Editor and Run once.
--- Applies migrations 0001-0007 (schema, RLS, storage, matches, cleanup, admin, flags).
+-- Applies migrations 0001-0008 (schema, RLS, storage, matches, cleanup, admin, flags, contact).
 -- Safe to re-run: every statement is idempotent (if not exists / drop-if-exists).
 
 
@@ -462,4 +462,21 @@ create policy "flags_select_admin" on public.flags
 drop policy if exists "flags_delete_admin" on public.flags;
 create policy "flags_delete_admin" on public.flags
   for delete using (public.is_admin());
+
+
+-- ====================================================================
+-- 0008_contact_value.sql
+-- ====================================================================
+-- Beacon - optional shared contact detail + consent at listing time.
+--
+-- contact_value: when a reporter picks "phone" or "email", they can share a
+-- number/address that neighbours see as a tel:/mailto: link. Nullable and
+-- opt-in - nothing personal is exposed unless the poster provides it.
+--
+-- contact_consent: records that the poster agreed to the Terms and consented to
+-- their report details (and any contact detail) being shared with neighbours so
+-- they can be contacted. Captured when the listing is created.
+
+alter table public.pet_reports add column if not exists contact_value text;
+alter table public.pet_reports add column if not exists contact_consent boolean not null default false;
 

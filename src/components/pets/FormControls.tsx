@@ -121,9 +121,9 @@ export function ContactPrefPicker({
   onChange: (v: ContactPref) => void;
 }) {
   const opts: { value: ContactPref; label: string; hint: string }[] = [
-    { value: 'in_app', label: 'In-app messages', hint: 'Neighbours reach you through Beacon' },
-    { value: 'phone', label: 'Phone call', hint: 'Share your number with responders' },
-    { value: 'email', label: 'Email', hint: 'Replies come to your inbox' },
+    { value: 'in_app', label: 'Sightings only', hint: 'Neighbours notify you by reporting sightings' },
+    { value: 'phone', label: 'Phone', hint: 'Share a number for people to call or text' },
+    { value: 'email', label: 'Email', hint: 'Share an email for people to reach you' },
   ];
   return (
     <div className="space-y-2">

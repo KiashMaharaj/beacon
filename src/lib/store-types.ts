@@ -19,4 +19,6 @@ export interface NewReportInput {
   stillHasPet?: boolean | null;
   notes?: string | null;
   contactPref: PetReport['contactPref'];
+  contactValue?: string | null;
+  contactConsent?: boolean;
 }

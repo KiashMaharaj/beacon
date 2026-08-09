@@ -134,6 +134,8 @@ export async function insertReport(
       still_has_pet: input.stillHasPet ?? null,
       notes: input.notes ?? null,
       contact_pref: input.contactPref,
+      contact_value: input.contactValue ?? null,
+      contact_consent: input.contactConsent ?? false,
     })
     .select('*')
     .single();
@@ -193,6 +195,7 @@ export async function updateReport(
   if (input.notes !== undefined) patch.notes = input.notes ?? null;
   if (input.stillHasPet !== undefined) patch.still_has_pet = input.stillHasPet ?? null;
   if (input.contactPref !== undefined) patch.contact_pref = input.contactPref;
+  if (input.contactValue !== undefined) patch.contact_value = input.contactValue ?? null;
   if (input.alertRadiusKm !== undefined) patch.alert_radius_km = input.alertRadiusKm ?? null;
   if (input.lastSeenAt !== undefined) patch.last_seen_at = input.lastSeenAt ?? null;
   if (input.location !== undefined) {

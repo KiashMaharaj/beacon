@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/Badge';
 import { FieldError, FieldLabel, Input, Textarea } from '@/components/ui/Field';
 import { ContactPrefPicker, SizePicker, SpeciesPicker } from '@/components/pets/FormControls';
 import { LocationPicker } from '@/components/pets/LocationPicker';
+import { ConsentCheckbox } from '@/components/pets/ConsentCheckbox';
 import { PhotoUpload } from '@/components/pets/PhotoUpload';
 import { PetPhoto } from '@/components/pets/PetPhoto';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -93,6 +94,7 @@ function FoundForm() {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors },
   } = useForm<FoundReportForm>({
     resolver: zodResolver(foundReportSchema) as Resolver<FoundReportForm>,
@@ -101,10 +103,13 @@ function FoundForm() {
       size: 'medium',
       stillHasPet: true,
       contactPref: 'in_app',
+      contactValue: '',
+      consent: false,
       foundDate: todayISO(),
       foundTime: nowTime(),
     },
   });
+  const contactPref = watch('contactPref');
 
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -126,6 +131,8 @@ function FoundForm() {
         stillHasPet: data.stillHasPet,
         notes: data.notes || null,
         contactPref: data.contactPref,
+        contactValue: data.contactValue?.trim() || null,
+        contactConsent: data.consent,
       });
       setCreated(report);
       setMatches(matchesForFound(report));
@@ -302,6 +309,24 @@ function FoundForm() {
             render={({ field }) => <ContactPrefPicker value={field.value} onChange={field.onChange} />}
           />
         </div>
+
+        {contactPref !== 'in_app' && (
+          <div>
+            <FieldLabel htmlFor="contactValue" required>
+              {contactPref === 'phone' ? 'Phone number to share' : 'Email to share'}
+            </FieldLabel>
+            <Input
+              id="contactValue"
+              type={contactPref === 'phone' ? 'tel' : 'email'}
+              inputMode={contactPref === 'phone' ? 'tel' : 'email'}
+              placeholder={contactPref === 'phone' ? 'e.g. 072 123 4567' : 'e.g. you@example.com'}
+              {...register('contactValue')}
+            />
+            <FieldError>{errors.contactValue?.message}</FieldError>
+          </div>
+        )}
+
+        <ConsentCheckbox registration={register('consent')} error={errors.consent?.message} />
 
         {publishError && (
           <p className="rounded-2xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600 dark:bg-rose-500/10">

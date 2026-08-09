@@ -63,14 +63,16 @@ export interface Database {
           still_has_pet: boolean | null;
           notes: string | null;
           contact_pref: ContactPref;
+          contact_value: string | null;
+          contact_consent: boolean;
           created_at: string;
           updated_at: string;
           reunited_at: string | null;
         };
         Insert: Omit<
           Database['public']['Tables']['pet_reports']['Row'],
-          'id' | 'created_at' | 'updated_at' | 'status' | 'reunited_at'
-        > & { id?: string; status?: ReportStatus };
+          'id' | 'created_at' | 'updated_at' | 'status' | 'reunited_at' | 'contact_value' | 'contact_consent'
+        > & { id?: string; status?: ReportStatus; contact_value?: string | null; contact_consent?: boolean };
         Update: Partial<Database['public']['Tables']['pet_reports']['Row']>;
         Relationships: [];
       };
