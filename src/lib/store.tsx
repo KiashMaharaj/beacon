@@ -35,6 +35,7 @@ interface Viewer {
   name: string;
   avatarUrl?: string | null;
   email?: string | null;
+  isAdmin?: boolean;
 }
 
 interface DemoState {
@@ -59,6 +60,7 @@ interface BeaconContextValue {
   isLive: boolean;
   user: Viewer;
   signedIn: boolean;
+  isAdmin: boolean;
   onboarded: boolean;
   reports: PetReport[];
   areas: AlertArea[];
@@ -85,6 +87,8 @@ interface BeaconContextValue {
     s: Omit<Sighting, 'id' | 'reportId' | 'createdAt'>,
   ) => Promise<void>;
   markReunited: (reportId: string) => Promise<void>;
+  deleteReport: (reportId: string) => Promise<void>;
+  deleteSighting: (reportId: string, sightingId: string) => Promise<void>;
   matchesForFound: (found: PetReport) => ScoredMatch[];
   notifyOwnerOfMatch: (foundId: string, missingId: string, score: number) => Promise<void>;
 
@@ -133,6 +137,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
           'Neighbour',
         avatarUrl: profile?.avatar_url ?? (meta.avatar_url as string | undefined) ?? null,
         email: s.user.email,
+        isAdmin: profile?.is_admin ?? false,
       });
       const [rep, ar, pr] = await Promise.all([
         repo.fetchReports(client),
@@ -321,6 +326,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
           full_name: viewer.name,
           avatar_url: viewer.avatarUrl ?? null,
           phone: null,
+          is_admin: viewer.isAdmin ?? false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -407,6 +413,28 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       setReports((prev) =>
         prev.map((r) =>
           r.id === reportId ? { ...r, status: 'reunited', reunitedAt: iso, updatedAt: iso } : r,
+        ),
+      );
+    },
+    [client, session],
+  );
+
+  const deleteReport = useCallback(
+    async (reportId: string) => {
+      if (client && session) await repo.deleteReport(client, reportId);
+      setReports((prev) => prev.filter((r) => r.id !== reportId));
+    },
+    [client, session],
+  );
+
+  const deleteSighting = useCallback(
+    async (reportId: string, sightingId: string) => {
+      if (client && session) await repo.deleteSighting(client, sightingId);
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === reportId
+            ? { ...r, sightings: (r.sightings ?? []).filter((s) => s.id !== sightingId) }
+            : r,
         ),
       );
     },
@@ -502,6 +530,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       isLive,
       user: viewer,
       signedIn,
+      isAdmin: viewer.isAdmin === true,
       onboarded,
       reports,
       areas,
@@ -519,6 +548,8 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       createReport,
       addSighting,
       markReunited,
+      deleteReport,
+      deleteSighting,
       matchesForFound,
       notifyOwnerOfMatch,
       updatePrefs,
@@ -549,6 +580,8 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       createReport,
       addSighting,
       markReunited,
+      deleteReport,
+      deleteSighting,
       matchesForFound,
       notifyOwnerOfMatch,
       updatePrefs,

@@ -12,7 +12,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/Feedback';
 import { PetCard } from '@/components/pets/PetCard';
 import { PawPrint } from '@/components/illustrations/Pets';
-import { HeartIcon, BellIcon, EyeIcon } from '@/components/ui/icons';
+import { HeartIcon, BellIcon, EyeIcon, ShieldIcon, ChevronRightIcon } from '@/components/ui/icons';
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
@@ -25,7 +25,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 
 function ProfileContent() {
   const router = useRouter();
-  const { user, reports, signOut } = useBeacon();
+  const { user, reports, signOut, isAdmin } = useBeacon();
 
   const mine = useMemo(() => reports.filter((r) => r.reporterId === user.id), [reports, user.id]);
   const reunions = mine.filter((r) => r.status === 'reunited').length;
@@ -80,6 +80,24 @@ function ProfileContent() {
           </Card>
         </Link>
       </div>
+
+      {/* Admin */}
+      {isAdmin && (
+        <Link href="/admin">
+          <Card className="mt-4 flex items-center gap-3 p-4 transition hover:-translate-y-0.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-beacon-gradient text-white shadow-glow">
+              <ShieldIcon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-ink dark:text-cream-50">Admin dashboard</p>
+              <p className="text-xs text-ink-muted dark:text-stone-400">
+                Moderate and remove any report or sighting.
+              </p>
+            </div>
+            <ChevronRightIcon className="h-5 w-5 text-ink-muted" />
+          </Card>
+        </Link>
+      )}
 
       {/* My reports */}
       <div className="mt-8">

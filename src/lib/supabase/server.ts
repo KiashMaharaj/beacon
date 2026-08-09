@@ -1,12 +1,15 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '@/lib/config';
 import type { Database } from '@/lib/database.types';
 
 /**
  * Server Supabase client (RSC / route handlers). Returns null in demo mode.
+ * Typed as supabase-js's SupabaseClient so table rows infer correctly (the ssr
+ * package bundles postgrest types that otherwise resolve rows to `never`).
  */
-export function getServerClient() {
+export function getServerClient(): SupabaseClient<Database> | null {
   if (!isSupabaseConfigured) return null;
 
   const cookieStore = cookies();
@@ -25,5 +28,5 @@ export function getServerClient() {
         }
       },
     },
-  });
+  }) as unknown as SupabaseClient<Database>;
 }

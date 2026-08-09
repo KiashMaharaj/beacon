@@ -25,6 +25,13 @@ export const BellIcon = (p: P) => (
   </svg>
 );
 
+export const ShieldIcon = (p: P) => (
+  <svg {...base(p)} {...p}>
+    <path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3Z" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
+
 export const PlusIcon = (p: P) => (
   <svg {...base(p)} {...p}>
     <path d="M12 5v14M5 12h14" />

@@ -249,6 +249,18 @@ export async function upsertPrefs(
   if (error) throw error;
 }
 
+/** Delete a report (owner or admin, enforced by RLS). Cascades to sightings. */
+export async function deleteReport(client: Client, id: string): Promise<void> {
+  const { error } = await client.from('pet_reports').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** Delete a single sighting (owner or admin, enforced by RLS). */
+export async function deleteSighting(client: Client, id: string): Promise<void> {
+  const { error } = await client.from('sightings').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /** Record a smart-match suggestion so the owner sees it. Best-effort. */
 export async function insertMatch(
   client: Client,
