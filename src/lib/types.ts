@@ -78,6 +78,13 @@ export interface NotificationPrefs {
   speciesFilter: SpeciesFilter;
 }
 
+export interface Flag {
+  id: string;
+  reportId: string;
+  reason?: string | null;
+  createdAt: string;
+}
+
 export interface MatchSuggestion {
   id: string;
   foundReportId: string;

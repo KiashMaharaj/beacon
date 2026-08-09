@@ -132,6 +132,23 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['notification_prefs']['Row']>;
         Relationships: [];
       };
+      flags: {
+        Row: {
+          id: string;
+          report_id: string;
+          reporter_id: string | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          report_id: string;
+          reporter_id?: string | null;
+          reason?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['flags']['Row']>;
+        Relationships: [];
+      };
       matches: {
         Row: {
           id: string;

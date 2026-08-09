@@ -170,13 +170,7 @@ function HomeContent() {
           </div>
           <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 hide-scrollbar">
             {reunited.map((r) => (
-              <Link
-                key={r.id}
-                href={`/pets/${r.id}`}
-                className="w-40 shrink-0"
-              >
-                <PetCard report={r} className="w-40" />
-              </Link>
+              <PetCard key={r.id} report={r} className="w-40 shrink-0" />
             ))}
           </div>
         </section>

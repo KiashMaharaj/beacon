@@ -176,6 +176,44 @@ export async function insertSighting(
   };
 }
 
+export async function updateReport(
+  client: Client,
+  userId: string,
+  id: string,
+  input: Partial<NewReportInput>,
+): Promise<PetReport> {
+  const patch: Database['public']['Tables']['pet_reports']['Update'] = {};
+  if (input.name !== undefined) patch.name = input.name ?? null;
+  if (input.species !== undefined) patch.species = input.species;
+  if (input.breed !== undefined) patch.breed = input.breed ?? null;
+  if (input.colour !== undefined) patch.colour = input.colour ?? null;
+  if (input.age !== undefined) patch.age = input.age ?? null;
+  if (input.size !== undefined) patch.size = input.size ?? null;
+  if (input.description !== undefined) patch.description = input.description ?? null;
+  if (input.notes !== undefined) patch.notes = input.notes ?? null;
+  if (input.stillHasPet !== undefined) patch.still_has_pet = input.stillHasPet ?? null;
+  if (input.contactPref !== undefined) patch.contact_pref = input.contactPref;
+  if (input.alertRadiusKm !== undefined) patch.alert_radius_km = input.alertRadiusKm ?? null;
+  if (input.lastSeenAt !== undefined) patch.last_seen_at = input.lastSeenAt ?? null;
+  if (input.location !== undefined) {
+    patch.last_seen_lat = input.location?.lat ?? null;
+    patch.last_seen_lng = input.location?.lng ?? null;
+    patch.location_label = input.location?.label ?? null;
+  }
+  if (input.photoUrl !== undefined) {
+    patch.photo_url = await resolvePhoto(client, userId, input.photoUrl);
+  }
+
+  const { data, error } = await client
+    .from('pet_reports')
+    .update(patch)
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error || !data) throw error ?? new Error('Could not update report');
+  return mapReport(data, null, []);
+}
+
 export async function setReportStatus(
   client: Client,
   reportId: string,
@@ -258,6 +296,41 @@ export async function deleteReport(client: Client, id: string): Promise<void> {
 /** Delete a single sighting (owner or admin, enforced by RLS). */
 export async function deleteSighting(client: Client, id: string): Promise<void> {
   const { error } = await client.from('sightings').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** Flag a report for moderation (any signed-in user). */
+export async function insertFlag(
+  client: Client,
+  reportId: string,
+  userId: string,
+  reason: string,
+): Promise<void> {
+  const { error } = await client
+    .from('flags')
+    .insert({ report_id: reportId, reporter_id: userId, reason });
+  if (error) throw error;
+}
+
+/** Load all flags (admin only, enforced by RLS). */
+export async function fetchFlags(client: Client): Promise<
+  { id: string; reportId: string; reason: string | null; createdAt: string }[]
+> {
+  const { data } = await client
+    .from('flags')
+    .select('*')
+    .order('created_at', { ascending: false });
+  return (data ?? []).map((f) => ({
+    id: f.id,
+    reportId: f.report_id,
+    reason: f.reason,
+    createdAt: f.created_at,
+  }));
+}
+
+/** Dismiss (delete) a flag (admin only, enforced by RLS). */
+export async function deleteFlag(client: Client, id: string): Promise<void> {
+  const { error } = await client.from('flags').delete().eq('id', id);
   if (error) throw error;
 }
 

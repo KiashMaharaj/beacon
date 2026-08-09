@@ -15,6 +15,7 @@ import { LogoMark } from '@/components/brand/Logo';
 import { PawPrint } from '@/components/illustrations/Pets';
 import { SearchIcon } from '@/components/ui/icons';
 import { speciesLabel, timeAgo } from '@/lib/format';
+import type { Flag, PetReport } from '@/lib/types';
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
@@ -26,9 +27,40 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 function AdminContent() {
-  const { reports, markReunited, deleteReport, deleteSighting } = useBeacon();
+  const { reports, markReunited, deleteReport, deleteSighting, fetchFlags, dismissFlag } =
+    useBeacon();
   const [query, setQuery] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [flags, setFlags] = useState<Flag[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchFlags().then((f) => {
+      if (active) setFlags(f);
+    });
+    return () => {
+      active = false;
+    };
+  }, [fetchFlags]);
+
+  const flaggedGroups = useMemo(() => {
+    const byReport = new Map<string, { report?: PetReport; flags: Flag[] }>();
+    for (const f of flags) {
+      const group = byReport.get(f.reportId) ?? {
+        report: reports.find((r) => r.id === f.reportId),
+        flags: [],
+      };
+      group.flags.push(f);
+      byReport.set(f.reportId, group);
+    }
+    return [...byReport.values()];
+  }, [flags, reports]);
+
+  const dismissGroup = async (group: { flags: Flag[] }) => {
+    const ids = group.flags.map((f) => f.id);
+    await Promise.all(ids.map((id) => dismissFlag(id)));
+    setFlags((prev) => prev.filter((f) => !ids.includes(f.id)));
+  };
 
   const stats = useMemo(() => {
     const active = reports.filter((r) => r.status === 'active').length;
@@ -96,6 +128,62 @@ function AdminContent() {
         <Stat value={stats.reunited} label="Reunited" />
         <Stat value={stats.sightings} label="Sightings" />
       </Card>
+
+      {/* Flagged content */}
+      {flaggedGroups.length > 0 && (
+        <div className="mt-8">
+          <h2 className="mb-3 font-display text-lg font-bold text-rose-600 dark:text-rose-400">
+            Flagged content ({flaggedGroups.length})
+          </h2>
+          <div className="space-y-3">
+            {flaggedGroups.map((group, i) => (
+              <Card key={group.report?.id ?? i} className="border-rose-200 p-4 dark:border-rose-500/30">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-display font-bold text-ink dark:text-cream-50">
+                    {group.report
+                      ? group.report.name ?? `Found ${speciesLabel(group.report.species).toLowerCase()}`
+                      : 'Deleted report'}
+                  </p>
+                  <Badge tone="warning">{group.flags.length} flag{group.flags.length > 1 ? 's' : ''}</Badge>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {group.flags.map((f) => (
+                    <span
+                      key={f.id}
+                      className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-300"
+                    >
+                      {f.reason ?? 'Reported'}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  {group.report && (
+                    <Link href={`/pets/${group.report.id}`} className="flex-1">
+                      <Button variant="outline" size="sm" fullWidth>
+                        View
+                      </Button>
+                    </Link>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={() => dismissGroup(group)} className="flex-1">
+                    Dismiss
+                  </Button>
+                  {group.report && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      loading={busyId === group.report.id}
+                      onClick={() => group.report && removeReport(group.report.id)}
+                      className="flex-1"
+                    >
+                      Delete
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Reports */}
       <div className="mt-8">

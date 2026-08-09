@@ -18,6 +18,7 @@ import { getBrowserClient } from './supabase/client';
 import * as repo from './supabase/repo';
 import type {
   AlertArea,
+  Flag,
   NotificationPrefs,
   PetReport,
   Sighting,
@@ -87,10 +88,16 @@ interface BeaconContextValue {
     s: Omit<Sighting, 'id' | 'reportId' | 'createdAt'>,
   ) => Promise<void>;
   markReunited: (reportId: string) => Promise<void>;
+  updateReport: (reportId: string, input: Partial<NewReportInput>) => Promise<void>;
   deleteReport: (reportId: string) => Promise<void>;
   deleteSighting: (reportId: string, sightingId: string) => Promise<void>;
   matchesForFound: (found: PetReport) => ScoredMatch[];
   notifyOwnerOfMatch: (foundId: string, missingId: string, score: number) => Promise<void>;
+
+  // moderation
+  flagReport: (reportId: string, reason: string) => Promise<void>;
+  fetchFlags: () => Promise<Flag[]>;
+  dismissFlag: (flagId: string) => Promise<void>;
 
   // alerts
   updatePrefs: (patch: Partial<NotificationPrefs>) => Promise<void>;
@@ -441,6 +448,79 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
     [client, session],
   );
 
+  const updateReport = useCallback(
+    async (id: string, input: Partial<NewReportInput>) => {
+      let resolvedPhoto = input.photoUrl;
+      if (client && session) {
+        const updated = await repo.updateReport(client, viewer.id, id, input);
+        resolvedPhoto = updated.photoUrl;
+      }
+      const pick = <T,>(next: T | undefined, current: T): T => (next !== undefined ? next : current);
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                name: pick(input.name, r.name),
+                species: pick(input.species, r.species),
+                breed: pick(input.breed, r.breed),
+                colour: pick(input.colour, r.colour),
+                age: pick(input.age, r.age),
+                size: pick(input.size, r.size),
+                description: pick(input.description, r.description),
+                notes: pick(input.notes, r.notes),
+                stillHasPet: pick(input.stillHasPet, r.stillHasPet),
+                contactPref: pick(input.contactPref, r.contactPref),
+                alertRadiusKm: pick(input.alertRadiusKm, r.alertRadiusKm),
+                lastSeenAt: pick(input.lastSeenAt, r.lastSeenAt),
+                location: pick(input.location, r.location),
+                photoUrl: input.photoUrl !== undefined ? resolvedPhoto ?? null : r.photoUrl,
+                updatedAt: new Date().toISOString(),
+              }
+            : r,
+        ),
+      );
+    },
+    [client, session, viewer.id],
+  );
+
+  const flagReport = useCallback(
+    async (reportId: string, reason: string) => {
+      if (client && session) {
+        try {
+          await repo.insertFlag(client, reportId, viewer.id, reason);
+        } catch {
+          /* best-effort */
+        }
+      }
+    },
+    [client, session, viewer.id],
+  );
+
+  const fetchFlags = useCallback(async (): Promise<Flag[]> => {
+    if (client && session) {
+      try {
+        return await repo.fetchFlags(client);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }, [client, session]);
+
+  const dismissFlag = useCallback(
+    async (flagId: string) => {
+      if (client && session) {
+        try {
+          await repo.deleteFlag(client, flagId);
+        } catch {
+          /* best-effort */
+        }
+      }
+    },
+    [client, session],
+  );
+
   const matchesForFound = useCallback(
     (found: PetReport) => findMatches(found, reports),
     [reports],
@@ -548,10 +628,14 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       createReport,
       addSighting,
       markReunited,
+      updateReport,
       deleteReport,
       deleteSighting,
       matchesForFound,
       notifyOwnerOfMatch,
+      flagReport,
+      fetchFlags,
+      dismissFlag,
       updatePrefs,
       enableAlerts,
       addArea,
@@ -580,10 +664,14 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       createReport,
       addSighting,
       markReunited,
+      updateReport,
       deleteReport,
       deleteSighting,
       matchesForFound,
       notifyOwnerOfMatch,
+      flagReport,
+      fetchFlags,
+      dismissFlag,
       updatePrefs,
       enableAlerts,
       addArea,

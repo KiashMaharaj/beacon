@@ -29,6 +29,15 @@ import {
 } from '@/components/ui/icons';
 import { prettyDate, sizeLabel, speciesLabel, timeAgo, timeMissing } from '@/lib/format';
 import { formatDistance } from '@/lib/geo';
+import { shareReport } from '@/lib/share';
+
+const FLAG_REASONS = [
+  'Spam or fake',
+  'Inappropriate content',
+  'Wrong or misleading',
+  'Duplicate post',
+  'Something else',
+];
 
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
@@ -44,12 +53,17 @@ function PetDetailContent() {
   const params = useParams<{ id: string }>();
   const search = useSearchParams();
   const router = useRouter();
-  const { getReport, withDistance, markReunited, deleteReport, user, isAdmin } = useBeacon();
+  const { getReport, withDistance, markReunited, deleteReport, flagReport, user, isAdmin } =
+    useBeacon();
 
   const [showContact, setShowContact] = useState(false);
   const [showReunion, setShowReunion] = useState(false);
   const [celebrated, setCelebrated] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showFlag, setShowFlag] = useState(false);
+  const [flagReason, setFlagReason] = useState('');
+  const [flagging, setFlagging] = useState(false);
+  const [flagDone, setFlagDone] = useState(false);
 
   const base = getReport(params.id);
   const report = useMemo(() => (base ? withDistance([base])[0] : undefined), [base, withDistance]);
@@ -104,25 +118,17 @@ function PetDetailContent() {
   };
 
   const handleShare = async () => {
-    const origin =
-      (typeof window !== 'undefined' && window.location.origin) ||
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      'https://beacon-six-chi.vercel.app';
-    const url = `${origin}/pets/${report.id}`;
-    const details = [report.breed, report.colour, report.location?.label].filter(Boolean).join(' · ');
-    const text =
-      report.kind === 'found'
-        ? `Found a ${speciesLabel(report.species).toLowerCase()} on Beacon${details ? ` (${details})` : ''}. Do you know whose pet this is?`
-        : `Help find ${title} on Beacon${details ? `: ${details}` : ''}. Have you seen them?`;
+    const result = await shareReport(report);
+    if (result === 'copied') alert('Link copied. Share it with your neighbours!');
+  };
+
+  const submitFlag = async () => {
+    setFlagging(true);
     try {
-      if (navigator.share) {
-        await navigator.share({ title: `Beacon · ${title}`, text, url });
-      } else {
-        await navigator.clipboard.writeText(`${text} ${url}`);
-        alert('Link copied. Share it with your neighbours!');
-      }
-    } catch {
-      /* user cancelled */
+      await flagReport(report.id, flagReason || 'Reported');
+      setFlagDone(true);
+    } finally {
+      setFlagging(false);
     }
   };
 
@@ -328,9 +334,15 @@ function PetDetailContent() {
         </div>
       )}
 
-      {/* Owner / admin: remove report */}
+      {/* Owner / admin: edit or remove report */}
       {(isOwner || isAdmin) && (
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex items-center justify-center gap-5">
+          <Link
+            href={`/pets/${report.id}/edit`}
+            className="text-sm font-semibold text-beacon-600 underline underline-offset-2 hover:text-beacon-700 dark:text-beacon-400"
+          >
+            Edit report
+          </Link>
           <button
             type="button"
             onClick={handleDelete}
@@ -345,6 +357,95 @@ function PetDetailContent() {
           </button>
         </div>
       )}
+
+      {/* Everyone else: report/flag for moderation */}
+      {!isOwner && (
+        <div className="mt-8 text-center">
+          <button
+            type="button"
+            onClick={() => setShowFlag(true)}
+            className="text-xs font-semibold text-ink-muted underline underline-offset-2 hover:text-rose-500"
+          >
+            Report this post
+          </button>
+        </div>
+      )}
+
+      {/* Flag modal */}
+      <Modal
+        open={showFlag}
+        onClose={() => {
+          setShowFlag(false);
+          setFlagDone(false);
+          setFlagReason('');
+        }}
+        title={flagDone ? undefined : 'Report this post'}
+      >
+        {flagDone ? (
+          <div className="py-4 text-center">
+            <span className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-500 dark:bg-emerald-500/15">
+              <CheckCircleIcon className="h-9 w-9" />
+            </span>
+            <h2 className="font-display text-xl font-extrabold text-ink dark:text-cream-50">
+              Thanks for flagging
+            </h2>
+            <p className="mt-2 text-sm text-ink-muted dark:text-stone-400">
+              Our team will take a look. Thank you for keeping Beacon kind and helpful.
+            </p>
+            <Button
+              fullWidth
+              className="mt-6"
+              onClick={() => {
+                setShowFlag(false);
+                setFlagDone(false);
+                setFlagReason('');
+              }}
+            >
+              Done
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-sm text-ink-muted dark:text-stone-400">
+              Why are you reporting this? It goes to our moderators, privately.
+            </p>
+            <div className="mt-2 space-y-2">
+              {FLAG_REASONS.map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  onClick={() => setFlagReason(reason)}
+                  aria-pressed={flagReason === reason}
+                  className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                    flagReason === reason
+                      ? 'border-beacon-400 bg-beacon-50 dark:border-beacon-500 dark:bg-beacon-500/15'
+                      : 'border-stone-200 bg-white/70 dark:border-stone-700 dark:bg-stone-900/50'
+                  }`}
+                >
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                      flagReason === reason ? 'border-beacon-500 bg-beacon-500' : 'border-stone-300'
+                    }`}
+                  >
+                    {flagReason === reason && <span className="h-2 w-2 rounded-full bg-white" />}
+                  </span>
+                  <span className="text-ink dark:text-cream-50">{reason}</span>
+                </button>
+              ))}
+            </div>
+            <Button
+              fullWidth
+              size="lg"
+              className="mt-4"
+              loading={flagging}
+              disabled={!flagReason}
+              onClick={submitFlag}
+            >
+              Submit report
+            </Button>
+          </div>
+        )}
+      </Modal>
 
       {/* Contact modal */}
       <Modal open={showContact} onClose={() => setShowContact(false)} title={`Contact ${report.reporter?.name ?? 'the owner'}`}>
