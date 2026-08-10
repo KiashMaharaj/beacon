@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { BeaconProvider } from '@/lib/store';
 import { ThemeScript } from '@/components/ThemeScript';
+import { PushListener } from '@/components/PushListener';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://beacon-six-chi.vercel.app';
 
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-sans">
         <BeaconProvider>{children}</BeaconProvider>
+        <PushListener />
       </body>
     </html>
   );

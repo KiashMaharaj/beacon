@@ -16,6 +16,7 @@ import { findMatches, type ScoredMatch } from './matching';
 import { DEMO_USER, demoAreas, demoPrefs, demoReports } from './demo-data';
 import { getBrowserClient } from './supabase/client';
 import * as repo from './supabase/repo';
+import { registerForPush } from './push';
 import type {
   AlertArea,
   Flag,
@@ -558,6 +559,14 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
 
   const enableAlerts = useCallback(async () => {
     await updatePrefs({ alertsEnabled: true });
+    // Register this device for push and store its token (no-op if push isn't
+    // configured or the user declines the permission prompt).
+    try {
+      const token = await registerForPush();
+      if (token) await updatePrefs({ pushToken: token });
+    } catch {
+      /* non-fatal */
+    }
   }, [updatePrefs]);
 
   const addArea = useCallback(
