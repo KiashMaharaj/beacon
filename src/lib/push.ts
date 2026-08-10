@@ -36,14 +36,38 @@ function firebaseApp() {
  * configured, unsupported, or the user declined.
  */
 export async function registerForPush(): Promise<string | null> {
-  if (!isPushConfigured() || typeof window === 'undefined') return null;
-  if (!('serviceWorker' in navigator) || !('Notification' in window)) return null;
+  const log = (msg: string, ...rest: unknown[]) => console.warn(`[beacon push] ${msg}`, ...rest);
+
+  if (typeof window === 'undefined') return null;
+  if (!isPushConfigured()) {
+    log(
+      'Firebase env not configured in this build - check the NEXT_PUBLIC_FIREBASE_* vars in Vercel and redeploy.',
+      {
+        apiKey: Boolean(firebaseConfig.apiKey),
+        projectId: Boolean(firebaseConfig.projectId),
+        messagingSenderId: Boolean(firebaseConfig.messagingSenderId),
+        appId: Boolean(firebaseConfig.appId),
+        vapidKey: Boolean(vapidKey),
+      },
+    );
+    return null;
+  }
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+    log('This browser does not support service workers / notifications.');
+    return null;
+  }
   try {
-    if (!(await isSupported())) return null;
+    if (!(await isSupported())) {
+      log('Firebase messaging is not supported in this browser.');
+      return null;
+    }
 
     let permission = Notification.permission;
     if (permission === 'default') permission = await Notification.requestPermission();
-    if (permission !== 'granted') return null;
+    if (permission !== 'granted') {
+      log(`Notification permission was not granted (state: ${permission}).`);
+      return null;
+    }
 
     const params = new URLSearchParams({
       apiKey: firebaseConfig.apiKey as string,
@@ -54,14 +78,20 @@ export async function registerForPush(): Promise<string | null> {
     const registration = await navigator.serviceWorker.register(
       `/firebase-messaging-sw.js?${params.toString()}`,
     );
+    await navigator.serviceWorker.ready;
 
     const messaging = getMessaging(firebaseApp());
     const token = await getToken(messaging, {
       vapidKey,
       serviceWorkerRegistration: registration,
     });
-    return token || null;
-  } catch {
+    if (!token) {
+      log('getToken returned empty - the VAPID key or Firebase config may be wrong.');
+      return null;
+    }
+    return token;
+  } catch (err) {
+    log('registration failed', err);
     return null;
   }
 }
