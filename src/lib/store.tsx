@@ -17,6 +17,7 @@ import { DEMO_USER, demoAreas, demoPrefs, demoReports } from './demo-data';
 import { getBrowserClient } from './supabase/client';
 import * as repo from './supabase/repo';
 import { registerForPush } from './push';
+import { supabaseAnonKey, supabaseUrl } from './config';
 import type {
   AlertArea,
   Flag,
@@ -79,6 +80,8 @@ interface BeaconContextValue {
   signInWithEmail: (input: { email: string; password: string }) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   completeOnboarding: () => void;
   setViewerLocation: (loc: { lat: number; lng: number } | null) => void;
 
@@ -315,6 +318,33 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
     setDemoSignedIn(false);
     setSession(null);
   }, [client]);
+
+  const sendPasswordReset = useCallback(
+    async (email: string) => {
+      if (!client) return;
+      const { error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset`,
+      });
+      if (error) throw error;
+    },
+    [client],
+  );
+
+  const deleteAccount = useCallback(async () => {
+    if (client && session) {
+      const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: supabaseAnonKey,
+        },
+      });
+      if (!res.ok) throw new Error('Could not delete your account. Please try again.');
+      await client.auth.signOut();
+    }
+    setDemoSignedIn(false);
+    setSession(null);
+  }, [client, session]);
 
   const completeOnboarding = useCallback(() => {
     setOnboarded(true);
@@ -634,6 +664,8 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       signInWithEmail,
       signInWithGoogle,
       signOut,
+      sendPasswordReset,
+      deleteAccount,
       completeOnboarding,
       setViewerLocation,
       createReport,
@@ -670,6 +702,8 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       signInWithEmail,
       signInWithGoogle,
       signOut,
+      sendPasswordReset,
+      deleteAccount,
       completeOnboarding,
       setViewerLocation,
       createReport,

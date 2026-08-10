@@ -64,6 +64,7 @@ export default function WelcomePage() {
     signUpWithEmail,
     signInWithEmail,
     signInWithGoogle,
+    sendPasswordReset,
     completeOnboarding,
     enableAlerts,
   } = useBeacon();
@@ -136,6 +137,24 @@ export default function WelcomePage() {
       setPhase('alerts');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError(null);
+    setInfo(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Enter your email above first, then tap “Forgot password”.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await sendPasswordReset(email);
+      setInfo('Check your email for a link to reset your password.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send the reset email.');
     } finally {
       setBusy(false);
     }
@@ -315,6 +334,16 @@ export default function WelcomePage() {
                 {mode === 'signup' ? 'Create account' : 'Log in'}
               </Button>
             </form>
+
+            {isLive && mode === 'login' && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="mt-3 w-full text-center text-sm font-semibold text-beacon-600 hover:text-beacon-700 dark:text-beacon-400"
+              >
+                Forgot password?
+              </button>
+            )}
 
             {isLive ? (
               <button

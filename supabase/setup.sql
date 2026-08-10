@@ -1,7 +1,7 @@
 -- Beacon: complete database setup.
 -- Paste this whole file into the Supabase SQL Editor and Run once.
--- Applies migrations 0001-0009 (schema, RLS, storage, matches, cleanup, admin, flags, contact, push targets).
--- Safe to re-run: every statement is idempotent (if not exists / drop-if-exists).
+-- Applies migrations 0001-0010.
+-- Safe to re-run: every statement is idempotent (if not exists / drop-if-exists / create or replace).
 
 
 -- ====================================================================
@@ -516,5 +516,29 @@ as $$
       or (a.species_filter = 'cats' and p_species = 'cat')
     )
     and public.distance_km(a.lat, a.lng, p_lat, p_lng) <= a.radius_km;
+$$;
+
+
+-- ====================================================================
+-- 0010_match_owner_targets.sql
+-- ====================================================================
+-- Beacon - push targets for a smart-match notification.
+--
+-- Returns the device token(s) of the owner of a (missing) report, so the
+-- notify-nearby function can tell them a found pet might be theirs. security
+-- definer so it can read the owner's private prefs.
+
+create or replace function public.report_owner_targets(p_report uuid)
+  returns table (push_token text)
+  language sql
+  stable
+  security definer
+  set search_path = public
+as $$
+  select np.push_token
+  from public.pet_reports r
+  join public.notification_prefs np on np.user_id = r.reporter_id
+  where r.id = p_report
+    and np.push_token is not null;
 $$;
 
