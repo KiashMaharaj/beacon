@@ -161,6 +161,7 @@ function MissingForm() {
             name="photoUrl"
             render={({ field }) => <PhotoUpload value={field.value} onChange={field.onChange} />}
           />
+          <FieldError>{errors.photoUrl?.message as string}</FieldError>
         </div>
 
         <div>

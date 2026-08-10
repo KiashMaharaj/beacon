@@ -19,7 +19,10 @@ export const missingReportSchema = z.object({
   age: z.string().max(40).optional().or(z.literal('')),
   size: sizeEnum,
   description: z.string().max(600).optional().or(z.literal('')),
-  photoUrl: z.string().nullable().optional(),
+  photoUrl: z.preprocess(
+    (v) => v ?? '',
+    z.string().min(1, 'Add a photo so neighbours can recognise them.'),
+  ),
   lastSeenDate: z.string().min(1, 'When did you last see them?'),
   lastSeenTime: z.string().min(1, 'What time?'),
   location: geoPointSchema.nullish().refine((v) => v != null, 'Mark where they were last seen'),
