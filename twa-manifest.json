@@ -1,6 +1,6 @@
 {
   "packageId": "app.beacon.twa",
-  "host": "beacon-six-chi.vercel.app",
+  "host": "usebeacon.co.za",
   "name": "Beacon",
   "launcherName": "Beacon",
   "display": "standalone",
@@ -14,22 +14,22 @@
   "backgroundColor": "#fff7ed",
   "enableNotifications": true,
   "startUrl": "/?source=twa",
-  "iconUrl": "https://beacon-six-chi.vercel.app/icon-512.png",
-  "maskableIconUrl": "https://beacon-six-chi.vercel.app/maskable-512.png",
-  "monochromeIconUrl": "https://beacon-six-chi.vercel.app/icon-512.png",
-  "webManifestUrl": "https://beacon-six-chi.vercel.app/manifest.webmanifest",
+  "iconUrl": "https://usebeacon.co.za/icon-512.png",
+  "maskableIconUrl": "https://usebeacon.co.za/maskable-512.png",
+  "monochromeIconUrl": "https://usebeacon.co.za/icon-512.png",
+  "webManifestUrl": "https://usebeacon.co.za/manifest.webmanifest",
   "shortcuts": [
     {
       "name": "Report a missing pet",
       "shortName": "Missing",
       "url": "/report/missing?source=shortcut",
-      "chosenIconUrl": "https://beacon-six-chi.vercel.app/icon-192.png"
+      "chosenIconUrl": "https://usebeacon.co.za/icon-192.png"
     },
     {
       "name": "Report a found pet",
       "shortName": "Found",
       "url": "/report/found?source=shortcut",
-      "chosenIconUrl": "https://beacon-six-chi.vercel.app/icon-192.png"
+      "chosenIconUrl": "https://usebeacon.co.za/icon-192.png"
     }
   ],
   "appVersionName": "1.0.0",
@@ -43,7 +43,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://beacon-six-chi.vercel.app/",
+  "fullScopeUrl": "https://usebeacon.co.za/",
   "minSdkVersion": 23,
   "generatorApp": "bubblewrap-cli"
 }
