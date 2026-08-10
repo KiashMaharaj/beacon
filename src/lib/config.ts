@@ -1,5 +1,10 @@
 // Beacon - runtime configuration & feature detection.
 
+// The app's public base URL. Set NEXT_PUBLIC_SITE_URL to your real domain and
+// everything (share links, Open Graph images, canonical URLs) follows - no code
+// changes needed when you move off the vercel.app subdomain.
+export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://beacon-six-chi.vercel.app';
+
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 // Accept both the classic `ANON_KEY` name and Supabase's newer
 // `PUBLISHABLE_KEY` name (its dashboard "Connect" snippet uses the latter), so

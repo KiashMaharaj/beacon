@@ -4,12 +4,10 @@
 
 import type { PetReport } from './types';
 import { speciesLabel } from './format';
+import { siteUrl } from './config';
 
 export function reportShare(report: PetReport): { title: string; text: string; url: string } {
-  const origin =
-    (typeof window !== 'undefined' && window.location.origin) ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    'https://beacon-six-chi.vercel.app';
+  const origin = (typeof window !== 'undefined' && window.location.origin) || siteUrl;
   const name =
     report.name ?? (report.kind === 'found' ? `found ${speciesLabel(report.species).toLowerCase()}` : 'a lost pet');
   const url = `${origin}/pets/${report.id}`;

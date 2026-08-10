@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { getServerClient } from '@/lib/supabase/server';
+import { siteUrl } from '@/lib/config';
 import { PetDetailClient } from './PetDetailClient';
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://beacon-six-chi.vercel.app';
 
 // Per-pet Open Graph / Twitter metadata so a shared link renders a rich preview
 // card (photo, name, details) in messages and social apps - which is what turns

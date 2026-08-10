@@ -3,8 +3,7 @@ import './globals.css';
 import { BeaconProvider } from '@/lib/store';
 import { ThemeScript } from '@/components/ThemeScript';
 import { PushListener } from '@/components/PushListener';
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://beacon-six-chi.vercel.app';
+import { siteUrl } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: {
