@@ -33,8 +33,9 @@ export async function generateMetadata({
     (details ? ` ${details}.` : '') +
     ' Seen them? Help reunite this pet on Beacon.';
   const url = `${siteUrl}/pets/${params.id}`;
-  const images = [data.photo_url ?? `${siteUrl}/icon-512.png`];
 
+  // The share image comes from opengraph-image.tsx in this folder (rendered per
+  // pet), so we don't set `images` here - Next wires it in automatically.
   return {
     title,
     description,
@@ -45,9 +46,8 @@ export async function generateMetadata({
       title,
       description,
       url,
-      images,
     },
-    twitter: { card: 'summary_large_image', title, description, images },
+    twitter: { card: 'summary_large_image', title, description },
   };
 }
 

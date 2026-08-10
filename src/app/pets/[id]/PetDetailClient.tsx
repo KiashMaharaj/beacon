@@ -263,6 +263,16 @@ function PetDetailContent() {
               <MapPinIcon className="h-4 w-4" /> {report.location.label}
             </p>
           )}
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${report.location.lat},${report.location.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 block"
+          >
+            <Button variant="outline" size="sm" fullWidth>
+              <MapPinIcon className="h-4 w-4" /> Open in Maps
+            </Button>
+          </a>
         </div>
       )}
 
