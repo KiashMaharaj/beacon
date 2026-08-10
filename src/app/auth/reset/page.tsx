@@ -26,20 +26,57 @@ export default function ResetPasswordPage() {
       setPhase('invalid');
       return;
     }
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get('code');
 
-    const settle = (ok: boolean) => setPhase(ok ? 'ready' : 'invalid');
+    const search = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const get = (k: string) => search.get(k) ?? hash.get(k);
 
-    if (code) {
-      client.auth
-        .exchangeCodeForSession(code)
-        .then(({ error: err }) => settle(!err))
-        .catch(() => settle(false));
-    } else {
-      // Some flows deliver the session in the URL hash and set it automatically.
-      client.auth.getSession().then(({ data }) => settle(Boolean(data.session)));
+    // Supabase redirected here with an error (e.g. an already-consumed link).
+    if (get('error') || get('error_code')) {
+      setPhase('invalid');
+      return;
     }
+
+    let resolved = false;
+    const ready = () => {
+      if (!resolved) {
+        resolved = true;
+        setPhase('ready');
+      }
+    };
+    const invalid = () => {
+      if (!resolved) {
+        resolved = true;
+        setPhase('invalid');
+      }
+    };
+
+    // token_hash flow (works across devices, no code verifier needed).
+    const tokenHash = get('token_hash');
+    if (tokenHash && get('type') === 'recovery') {
+      client.auth
+        .verifyOtp({ type: 'recovery', token_hash: tokenHash })
+        .then(({ error: err }) => (err ? invalid() : ready()))
+        .catch(invalid);
+      return;
+    }
+
+    // PKCE (?code=) and implicit (#access_token=) links are handled
+    // automatically by the client; wait for the recovery session to appear.
+    // (We must NOT also exchange the code ourselves - that double-consumes it
+    // and produces a false "link expired".)
+    const { data: sub } = client.auth.onAuthStateChange((event, sess) => {
+      if (event === 'PASSWORD_RECOVERY' || sess) ready();
+    });
+    client.auth.getSession().then(({ data }) => {
+      if (data.session) ready();
+    });
+    const timer = setTimeout(invalid, 6000);
+
+    return () => {
+      sub.subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, [client]);
 
   const submit = async (e: React.FormEvent) => {

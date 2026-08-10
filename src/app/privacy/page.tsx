@@ -114,12 +114,48 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1.5 pl-5">
           <li>You can mark reports as reunited and edit or remove content you created.</li>
           <li>
-            You can request deletion of your account and associated data by contacting us at the
-            address below; we will remove it within a reasonable period, subject to legal
-            obligations.
+            You can delete your account and associated data at any time from{' '}
+            <strong>Profile &rarr; Delete my account</strong>, or by contacting us at the address
+            below. We remove it within a reasonable period, subject to legal obligations.
           </li>
           <li>You can turn alerts off at any time in the app&rsquo;s settings.</li>
         </ul>
+      </Section>
+
+      <Section title="Your rights (POPIA)">
+        <p>
+          Beacon operates from South Africa and processes your personal information in line with the
+          Protection of Personal Information Act, 2013 (POPIA). We are the responsible party for the
+          information you share with us. We only process personal information that is adequate,
+          relevant and necessary to run the lost-and-found service.
+        </p>
+        <p>Under POPIA you have the right to:</p>
+        <ul className="list-disc space-y-1.5 pl-5">
+          <li>ask what personal information we hold about you, and request a copy;</li>
+          <li>ask us to correct or update information that is inaccurate;</li>
+          <li>ask us to delete your information (including via the in-app account deletion);</li>
+          <li>object to processing, and withdraw any consent you gave, at any time.</li>
+        </ul>
+        <p>
+          To exercise any of these, email us at{' '}
+          <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            className="font-semibold text-beacon-600 underline dark:text-beacon-400"
+          >
+            {CONTACT_EMAIL}
+          </a>
+          . If you believe we have not handled your information lawfully, you may lodge a complaint
+          with the Information Regulator (South Africa) at{' '}
+          <a
+            href="https://inforegulator.org.za"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-beacon-600 underline dark:text-beacon-400"
+          >
+            inforegulator.org.za
+          </a>
+          .
+        </p>
       </Section>
 
       <Section title="Children">
