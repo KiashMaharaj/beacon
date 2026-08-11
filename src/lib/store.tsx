@@ -195,7 +195,17 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       if (data.session) await loadLive(data.session);
       setReady(true);
     });
-    const { data: sub } = client.auth.onAuthStateChange(async (_event, s) => {
+    const { data: sub } = client.auth.onAuthStateChange(async (event, s) => {
+      // A password-recovery link may land anywhere (root/home) and log the user
+      // in; whenever we detect it, send them to the reset form instead.
+      if (
+        event === 'PASSWORD_RECOVERY' &&
+        typeof window !== 'undefined' &&
+        !window.location.pathname.startsWith('/auth/reset')
+      ) {
+        window.location.replace('/auth/reset');
+        return;
+      }
       setSession(s);
       if (s) {
         await loadLive(s);
