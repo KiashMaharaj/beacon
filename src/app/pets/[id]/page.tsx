@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { getServerClient } from '@/lib/supabase/server';
 import { siteUrl } from '@/lib/config';
 import { PetDetailClient } from './PetDetailClient';
@@ -31,10 +32,20 @@ export async function generateMetadata({
       : `${name} is missing and their family needs your help.`) +
     (details ? ` ${details}.` : '') +
     ' Seen them? Help reunite this pet on Beacon.';
-  const url = `${siteUrl}/pets/${params.id}`;
+  // Build absolute URLs from the actual request host so the share card works no
+  // matter which domain served the page (apex vs www vs preview) - a mismatch
+  // here is what makes crawlers silently drop the preview image.
+  const h = headers();
+  const host = h.get('host');
+  const proto = h.get('x-forwarded-proto') ?? (host?.includes('localhost') ? 'http' : 'https');
+  const origin = host ? `${proto}://${host}` : siteUrl;
+  const url = `${origin}/pets/${params.id}`;
 
-  // The share image comes from opengraph-image.tsx in this folder (rendered per
-  // pet), so we don't set `images` here - Next wires it in automatically.
+  // The share image is rendered per-pet by opengraph-image.tsx in this folder.
+  // We reference it explicitly (rather than relying on auto-wiring) with an
+  // absolute, host-correct URL so every crawler picks it up reliably.
+  const image = `${origin}/pets/${params.id}/opengraph-image`;
+
   return {
     title,
     description,
@@ -45,8 +56,9 @@ export async function generateMetadata({
       title,
       description,
       url,
+      images: [{ url: image, width: 1200, height: 630, alt: title }],
     },
-    twitter: { card: 'summary_large_image', title, description },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
   };
 }
 

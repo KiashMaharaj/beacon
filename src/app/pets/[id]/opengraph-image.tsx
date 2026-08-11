@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og';
-import { siteUrl } from '@/lib/config';
 
 // Per-pet social share image (1200x630). Uses the pet's photo when there is
 // one, otherwise a warm on-brand card - so every shared link previews nicely.
@@ -106,7 +105,22 @@ export default async function Image({ params }: { params: { id: string } }) {
             <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 34 }}>{details}</div>
           ) : null}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 8 }}>
-            <img src={`${siteUrl}/icon-192.png`} width={44} height={44} alt="" style={{ borderRadius: 10 }} />
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 46,
+                height: 46,
+                borderRadius: 12,
+                background: 'white',
+                color: statusColor,
+                fontSize: 30,
+                fontWeight: 900,
+              }}
+            >
+              B
+            </div>
             <div style={{ color: 'white', fontSize: 30, fontWeight: 700 }}>Beacon</div>
             <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 26 }}>
               · Helping neighbours bring pets home
