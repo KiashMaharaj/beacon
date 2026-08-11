@@ -80,15 +80,26 @@ Deno.serve(async (req: Request) => {
 
   const secret = Deno.env.get('WEBHOOK_SECRET');
   if (secret && req.headers.get('x-webhook-secret') !== secret) {
+    console.warn('[notify-nearby] rejected: x-webhook-secret did not match WEBHOOK_SECRET');
     return new Response('unauthorized', { status: 401 });
   }
 
   const payload = await req.json().catch(() => null);
   const record = payload?.record;
-  const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  const json = (body: unknown, status = 200) => {
+    console.log('[notify-nearby] result', JSON.stringify(body));
+    return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  };
 
-  if (!record) return json({ skipped: true });
+  console.log('[notify-nearby] invoked', {
+    hasRecord: !!record,
+    kind: record?.kind,
+    status: record?.status,
+    hasLocation: record?.last_seen_lat != null,
+    isMatch: !!(record?.missing_report_id && record?.found_report_id),
+  });
+
+  if (!record) return json({ skipped: 'no record' });
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -136,11 +147,15 @@ Deno.serve(async (req: Request) => {
         );
         if (res.ok) {
           sent += 1;
-        } else if (res.status === 404 || res.status === 400) {
-          await fetch(
-            `${supabaseUrl}/rest/v1/notification_prefs?push_token=eq.${encodeURIComponent(token)}`,
-            { method: 'PATCH', headers: { ...restHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ push_token: null }) },
-          );
+        } else {
+          const errText = await res.text().catch(() => '');
+          console.warn(`[notify-nearby] FCM send failed status=${res.status} body=${errText.slice(0, 300)}`);
+          if (res.status === 404 || res.status === 400) {
+            await fetch(
+              `${supabaseUrl}/rest/v1/notification_prefs?push_token=eq.${encodeURIComponent(token)}`,
+              { method: 'PATCH', headers: { ...restHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ push_token: null }) },
+            );
+          }
         }
       }),
     );
@@ -152,6 +167,7 @@ Deno.serve(async (req: Request) => {
     const missingId = record.missing_report_id;
     const targets = await callRpc('report_owner_targets', { p_report: missingId });
     const tokens = targets.map((r) => r.push_token).filter(Boolean);
+    console.log(`[notify-nearby] match branch: owner targets=${targets.length} tokens=${tokens.length}`);
     if (tokens.length === 0) return json({ sent: 0, targeted: 0, kind: 'match' });
 
     const repRes = await fetch(
@@ -187,6 +203,7 @@ Deno.serve(async (req: Request) => {
     p_exclude: record.reporter_id,
   });
   const tokens = targets.map((r) => r.push_token).filter(Boolean);
+  console.log(`[notify-nearby] nearby branch: targets=${targets.length} tokens=${tokens.length}`);
   if (tokens.length === 0) return json({ sent: 0, targeted: 0 });
 
   const name = record.name || 'A pet';
