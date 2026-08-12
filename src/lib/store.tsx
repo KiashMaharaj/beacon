@@ -233,14 +233,44 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
   }, [isLive, ready, reports, areas, prefs, demoSignedIn]);
 
   // Realtime: keep the community feed fresh while signed in.
+  //
+  // We refetch on any change but *reconcile* the result into the existing list,
+  // reusing the previous object for reports that haven't changed. That keeps
+  // React keys and object identity stable, so only the card that actually
+  // changed re-renders - the rest (and the map markers) stay put instead of
+  // flashing on every update. Keyed on the user id (not the whole session
+  // object) so a routine token refresh doesn't tear down the subscription.
+  const userId = session?.user?.id ?? null;
   useEffect(() => {
-    if (!client || !session) return;
+    if (!client || !userId) return;
     let timer: ReturnType<typeof setTimeout>;
+    const reconcile = (prev: PetReport[], next: PetReport[]): PetReport[] => {
+      const prevById = new Map(prev.map((r) => [r.id, r]));
+      let changed = prev.length !== next.length;
+      const merged = next.map((n) => {
+        const old = prevById.get(n.id);
+        if (
+          old &&
+          old.updatedAt === n.updatedAt &&
+          old.status === n.status &&
+          old.photoUrl === n.photoUrl &&
+          (old.sightings?.length ?? 0) === (n.sightings?.length ?? 0)
+        ) {
+          return old;
+        }
+        changed = true;
+        return n;
+      });
+      return changed ? merged : prev;
+    };
     const refetch = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        repo.fetchReports(client).then(setReports).catch(() => {});
-      }, 400);
+        repo
+          .fetchReports(client)
+          .then((fresh) => setReports((prev) => reconcile(prev, fresh)))
+          .catch(() => {});
+      }, 600);
     };
     const channel = client
       .channel('beacon-feed')
@@ -251,7 +281,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       client.removeChannel(channel);
     };
-  }, [client, session]);
+  }, [client, userId]);
 
   const setViewerLocation = useCallback((loc: { lat: number; lng: number } | null) => {
     setViewerLocationState(loc);
