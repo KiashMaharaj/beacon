@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useBeacon } from '@/lib/store';
@@ -77,6 +77,9 @@ function Feature({
 export default function LandingPage() {
   const router = useRouter();
   const { ready, signedIn } = useBeacon();
+  // Uses the rich hero render at /hero.jpg when present, otherwise falls back to
+  // the built-in illustration so the page never breaks if the file is missing.
+  const [heroImgOk, setHeroImgOk] = useState(true);
 
   // Signed-in visitors don't need the marketing page - send them to the app.
   useEffect(() => {
@@ -142,11 +145,23 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex items-center justify-center">
-            <div className="relative">
-              <NeighbourhoodIllustration className="w-full max-w-sm" />
-              <DogIllustration className="absolute -bottom-4 -left-2 h-24 w-24 animate-float" />
-              <CatIllustration className="absolute -right-1 top-2 h-20 w-20 animate-float" />
-            </div>
+            {heroImgOk ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src="/hero.jpg"
+                alt="A glowing golden puppy stands inside a beacon signal ring on a neighbourhood street at dusk while neighbours nearby receive alerts on their phones and a trail of light leads home."
+                width={1245}
+                height={1245}
+                onError={() => setHeroImgOk(false)}
+                className="w-full max-w-md rounded-[2rem] shadow-glow"
+              />
+            ) : (
+              <div className="relative">
+                <NeighbourhoodIllustration className="w-full max-w-sm" />
+                <DogIllustration className="absolute -bottom-4 -left-2 h-24 w-24 animate-float" />
+                <CatIllustration className="absolute -right-1 top-2 h-20 w-20 animate-float" />
+              </div>
+            )}
           </div>
         </div>
       </section>
