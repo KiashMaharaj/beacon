@@ -365,31 +365,38 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
 
     const params = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    if (params.get('error') || hashParams.get('error')) return false;
 
-    // Kick off an explicit code exchange, but don't depend on its result: the
-    // client's own detectSessionInUrl races to exchange the same code, and
-    // whichever loses errors harmlessly. We just wait for the session to appear
-    // from whichever path wins - polling avoids the race that was bouncing users
-    // to /welcome while the session actually landed a moment later.
+    // The user explicitly declined at Google - no session is coming, bail fast.
+    const err = params.get('error') || hashParams.get('error');
+    if (err === 'access_denied') return false;
+
+    // NOTE: any other `error` (e.g. invalid_request) is *not* treated as fatal.
+    // The client's own detectSessionInUrl races to exchange the PKCE code with
+    // our explicit exchange below; whichever loses reports an error, but the
+    // winner still establishes a session. So we decide purely on whether a
+    // session actually appears - which is what was landing while the old code
+    // bounced users to /welcome on the loser's error.
     const code = params.get('code');
-    if (code) {
-      client.auth
-        .exchangeCodeForSession(code)
-        .then(({ data }) => {
-          if (data?.session) setSession(data.session);
-        })
-        .catch(() => {
-          /* the competing exchange handled it - ignore */
-        });
-    }
+    let triedExplicit = false;
 
-    // Poll for a session (implicit #access_token flows resolve here too).
     for (let i = 0; i < 24; i += 1) {
       const { data } = await client.auth.getSession();
       if (data.session) {
         setSession(data.session);
         return true;
+      }
+      // Give detectSessionInUrl first crack; after ~2s with no session, try an
+      // explicit exchange once as a fallback (covers cases where it didn't run).
+      if (i === 5 && code && !triedExplicit) {
+        triedExplicit = true;
+        client.auth
+          .exchangeCodeForSession(code)
+          .then(({ data: d }) => {
+            if (d?.session) setSession(d.session);
+          })
+          .catch(() => {
+            /* the competing exchange handled it - ignore */
+          });
       }
       await new Promise((r) => setTimeout(r, 500));
     }
