@@ -367,40 +367,31 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     if (params.get('error') || hashParams.get('error')) return false;
 
-    // Already have a session (e.g. auto-detected)? Use it.
-    const existing = await client.auth.getSession();
-    if (existing.data.session) {
-      setSession(existing.data.session);
-      return true;
-    }
-
+    // Kick off an explicit code exchange, but don't depend on its result: the
+    // client's own detectSessionInUrl races to exchange the same code, and
+    // whichever loses errors harmlessly. We just wait for the session to appear
+    // from whichever path wins - polling avoids the race that was bouncing users
+    // to /welcome while the session actually landed a moment later.
     const code = params.get('code');
     if (code) {
-      const { data, error } = await client.auth.exchangeCodeForSession(code);
-      if (data?.session) {
+      client.auth
+        .exchangeCodeForSession(code)
+        .then(({ data }) => {
+          if (data?.session) setSession(data.session);
+        })
+        .catch(() => {
+          /* the competing exchange handled it - ignore */
+        });
+    }
+
+    // Poll for a session (implicit #access_token flows resolve here too).
+    for (let i = 0; i < 24; i += 1) {
+      const { data } = await client.auth.getSession();
+      if (data.session) {
         setSession(data.session);
         return true;
       }
-      // Another init path may have consumed the code first - re-check.
-      if (error) {
-        const again = await client.auth.getSession();
-        if (again.data.session) {
-          setSession(again.data.session);
-          return true;
-        }
-        return false;
-      }
-    }
-
-    // Implicit flow (#access_token=) or a slightly delayed session write: poll
-    // briefly rather than failing immediately.
-    for (let i = 0; i < 6; i += 1) {
       await new Promise((r) => setTimeout(r, 500));
-      const s = await client.auth.getSession();
-      if (s.data.session) {
-        setSession(s.data.session);
-        return true;
-      }
     }
     return false;
   }, [client]);
