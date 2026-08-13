@@ -52,6 +52,30 @@ function defaultPrefs(userId: string): NotificationPrefs {
   return { userId, alertsEnabled: false, defaultRadiusKm: 3, speciesFilter: 'all' };
 }
 
+// Merge a freshly fetched report list into the existing one, reusing the
+// previous object for any report that hasn't materially changed. That keeps
+// object identity (and React keys) stable so unchanged cards don't re-render or
+// flash - whether the refresh comes from realtime or a re-load on boot.
+function reconcileReports(prev: PetReport[], next: PetReport[]): PetReport[] {
+  const prevById = new Map(prev.map((r) => [r.id, r]));
+  let changed = prev.length !== next.length;
+  const merged = next.map((n) => {
+    const old = prevById.get(n.id);
+    if (
+      old &&
+      old.updatedAt === n.updatedAt &&
+      old.status === n.status &&
+      old.photoUrl === n.photoUrl &&
+      (old.sightings?.length ?? 0) === (n.sightings?.length ?? 0)
+    ) {
+      return old;
+    }
+    changed = true;
+    return n;
+  });
+  return changed ? merged : prev;
+}
+
 export interface SignUpInput {
   name: string;
   email: string;
@@ -156,7 +180,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
         repo.fetchAreas(client, userId),
         repo.fetchPrefs(client, userId),
       ]);
-      setReports(rep);
+      setReports((prev) => reconcileReports(prev, rep));
       setAreas(ar);
       setPrefs(pr ?? defaultPrefs(userId));
     },
@@ -190,10 +214,19 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
     }
 
     let active = true;
+    // getSession and onAuthStateChange (INITIAL_SESSION) both fire on boot, so
+    // dedupe by user id to avoid loading the whole feed twice - the double load
+    // replaced every report object and made the list flash on first render.
+    let loadedFor: string | null = null;
+    const loadOnce = async (s: Session) => {
+      if (!active || loadedFor === s.user.id) return;
+      loadedFor = s.user.id;
+      await loadLive(s);
+    };
     client.auth.getSession().then(async ({ data }) => {
       if (!active) return;
       setSession(data.session);
-      if (data.session) await loadLive(data.session);
+      if (data.session) await loadOnce(data.session);
       setReady(true);
     });
     const { data: sub } = client.auth.onAuthStateChange(async (event, s) => {
@@ -209,8 +242,9 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       }
       setSession(s);
       if (s) {
-        await loadLive(s);
+        await loadOnce(s);
       } else {
+        loadedFor = null;
         setReports([]);
         setAreas([]);
         setViewer(DEMO_USER);
@@ -245,31 +279,12 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!client || !userId) return;
     let timer: ReturnType<typeof setTimeout>;
-    const reconcile = (prev: PetReport[], next: PetReport[]): PetReport[] => {
-      const prevById = new Map(prev.map((r) => [r.id, r]));
-      let changed = prev.length !== next.length;
-      const merged = next.map((n) => {
-        const old = prevById.get(n.id);
-        if (
-          old &&
-          old.updatedAt === n.updatedAt &&
-          old.status === n.status &&
-          old.photoUrl === n.photoUrl &&
-          (old.sightings?.length ?? 0) === (n.sightings?.length ?? 0)
-        ) {
-          return old;
-        }
-        changed = true;
-        return n;
-      });
-      return changed ? merged : prev;
-    };
     const refetch = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         repo
           .fetchReports(client)
-          .then((fresh) => setReports((prev) => reconcile(prev, fresh)))
+          .then((fresh) => setReports((prev) => reconcileReports(prev, fresh)))
           .catch(() => {});
       }, 600);
     };
