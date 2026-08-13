@@ -158,9 +158,10 @@ function FoundForm() {
             You&apos;re a good neighbour
           </h1>
           <p className="mt-2 max-w-sm text-[15px] text-ink-muted dark:text-stone-400">
-            Your found report is live. {matches.length > 0
+            Your found report is live.{' '}
+            {matches.length > 0
               ? 'We found some pets that could be a match.'
-              : 'We&apos;ll keep watching for a matching missing pet and notify you.'}
+              : 'We’ll keep watching for a matching missing pet and notify you.'}
           </p>
         </motion.div>
 
@@ -192,13 +193,15 @@ function FoundForm() {
           </Card>
         )}
 
-        <div className="mt-8 flex gap-3">
-          <Button variant="outline" fullWidth onClick={() => router.replace('/home')}>
+        <div className="mt-8 space-y-3">
+          <Link href={`/pets/${created.id}`} className="block">
+            <Button fullWidth size="lg">
+              View my report
+            </Button>
+          </Link>
+          <Button variant="outline" fullWidth size="lg" onClick={() => router.replace('/home')}>
             Back home
           </Button>
-          <Link href={`/pets/${created.id}`} className="flex-1">
-            <Button fullWidth>View my report</Button>
-          </Link>
         </div>
       </AppShell>
     );
