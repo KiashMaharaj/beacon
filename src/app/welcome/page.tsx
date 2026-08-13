@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useBeacon } from '@/lib/store';
@@ -9,29 +10,9 @@ import { Button } from '@/components/ui/Button';
 import { FieldError, FieldLabel, Input } from '@/components/ui/Field';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { PawPrint } from '@/components/illustrations/Pets';
-import { NeighbourhoodIllustration } from '@/components/illustrations/Scenery';
-import { DogIllustration, CatIllustration } from '@/components/illustrations/Pets';
 import { BellIcon, CheckIcon } from '@/components/ui/icons';
 
-const slides = [
-  {
-    illo: <NeighbourhoodIllustration className="max-w-xs" />,
-    title: 'Beacon helps neighbours reunite lost pets',
-    body: 'When a pet goes missing, every extra pair of eyes matters. Beacon rallies your neighbourhood to bring them home.',
-  },
-  {
-    illo: <DogIllustration className="h-52 w-52 animate-float" />,
-    title: 'Report a missing pet in seconds',
-    body: 'Share a photo, last-seen spot and a few details. Nearby neighbours are gently alerted so the search starts right away.',
-  },
-  {
-    illo: <CatIllustration className="h-52 w-52 animate-float" />,
-    title: 'Found a pet? Help them home',
-    body: 'Report a found pet and Beacon automatically suggests likely matches from nearby missing pets, then notifies the owner.',
-  },
-];
-
-type Phase = 'intro' | 'account' | 'alerts';
+type Phase = 'account' | 'alerts';
 
 function GoogleGlyph({ className }: { className?: string }) {
   return (
@@ -69,8 +50,7 @@ export default function WelcomePage() {
     enableAlerts,
   } = useBeacon();
 
-  const [phase, setPhase] = useState<Phase>('intro');
-  const [slide, setSlide] = useState(0);
+  const [phase, setPhase] = useState<Phase>('account');
   const [alertState, setAlertState] = useState<'idle' | 'requesting' | 'done'>('idle');
 
   const [mode, setMode] = useState<'signup' | 'login'>('signup');
@@ -82,16 +62,15 @@ export default function WelcomePage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.search.includes('error=auth')) {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'auth' || window.location.search.includes('error=auth')) {
       setError('That sign-in did not complete. Please try again.');
-      setPhase('account');
     }
+    // The landing page links here with ?mode=login or ?mode=signup.
+    const m = params.get('mode');
+    if (m === 'login' || m === 'signup') setMode(m);
   }, []);
-
-  const next = () => {
-    if (slide < slides.length - 1) setSlide((s) => s + 1);
-    else setPhase('account');
-  };
 
   const finish = () => {
     completeOnboarding();
@@ -191,55 +170,13 @@ export default function WelcomePage() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-6 py-6">
       <div className="flex items-center justify-between">
-        <Wordmark />
+        <Link href="/" aria-label="Beacon home">
+          <Wordmark />
+        </Link>
         <ThemeToggle />
       </div>
 
       <AnimatePresence mode="wait">
-        {phase === 'intro' && (
-          <motion.div
-            key={`slide-${slide}`}
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -24 }}
-            transition={{ duration: 0.35 }}
-            className="flex flex-1 flex-col"
-          >
-            <div className="flex flex-1 flex-col items-center justify-center text-center">
-              <div className="mb-8 flex min-h-[240px] items-center justify-center">{slides[slide].illo}</div>
-              <h1 className="text-balance font-display text-2xl font-extrabold leading-tight text-ink dark:text-cream-50">
-                {slides[slide].title}
-              </h1>
-              <p className="mt-3 max-w-sm text-balance text-[15px] leading-relaxed text-ink-muted dark:text-stone-400">
-                {slides[slide].body}
-              </p>
-            </div>
-
-            <div className="mt-6 flex items-center justify-center gap-2">
-              {slides.map((_, i) => (
-                <span
-                  key={i}
-                  className={`h-2 rounded-full transition-all ${
-                    i === slide ? 'w-6 bg-beacon-500' : 'w-2 bg-stone-300 dark:bg-stone-700'
-                  }`}
-                />
-              ))}
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <Button fullWidth size="lg" onClick={next}>
-                {slide < slides.length - 1 ? 'Continue' : 'Get started'}
-              </Button>
-              <button
-                onClick={() => setPhase('account')}
-                className="w-full text-sm font-semibold text-ink-muted hover:text-ink-soft dark:text-stone-500"
-              >
-                Skip intro
-              </button>
-            </div>
-          </motion.div>
-        )}
-
         {phase === 'account' && (
           <motion.div
             key="account"

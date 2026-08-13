@@ -9,7 +9,9 @@ export function GET() {
     short_name: 'Beacon',
     description:
       'Beacon helps neighbours reunite lost pets. Report missing or found pets, get nearby alerts, share sightings and celebrate reunions.',
-    start_url: '/?source=pwa',
+    // Launch straight into the app (the installed app skips the marketing
+    // landing at '/'); /home sends unauthenticated users to sign-in.
+    start_url: '/home?source=pwa',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
