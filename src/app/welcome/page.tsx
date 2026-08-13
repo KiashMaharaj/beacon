@@ -43,6 +43,7 @@ export default function WelcomePage() {
     isLive,
     signInDemo,
     signUpWithEmail,
+    subscribeNewsletter,
     signInWithEmail,
     signInWithGoogle,
     sendPasswordReset,
@@ -57,6 +58,7 @@ export default function WelcomePage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [marketing, setMarketing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -96,6 +98,7 @@ export default function WelcomePage() {
 
     // Demo mode: no backend, just enter the app.
     if (!isLive) {
+      if (mode === 'signup' && marketing) void subscribeNewsletter(email, 'signup');
       signInDemo(name || 'Neighbour');
       setPhase('alerts');
       return;
@@ -105,6 +108,8 @@ export default function WelcomePage() {
     try {
       if (mode === 'signup') {
         const { needsConfirmation } = await signUpWithEmail({ name, email, password });
+        // Record the marketing opt-in (only when they ticked the box).
+        if (marketing) void subscribeNewsletter(email, 'signup');
         if (needsConfirmation) {
           setInfo('Almost there! Check your email to confirm your account, then log in.');
           setMode('login');
@@ -258,6 +263,21 @@ export default function WelcomePage() {
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
+              )}
+
+              {mode === 'signup' && (
+                <label className="flex cursor-pointer items-start gap-2.5 text-left">
+                  <input
+                    type="checkbox"
+                    checked={marketing}
+                    onChange={(e) => setMarketing(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300 text-beacon-500 focus:ring-beacon-400 dark:border-stone-600 dark:bg-stone-800"
+                  />
+                  <span className="text-[13px] leading-snug text-ink-muted dark:text-stone-400">
+                    Send me occasional Beacon updates, safety tips and news by email. Optional, and
+                    you can unsubscribe any time.
+                  </span>
+                </label>
               )}
 
               <FieldError>{error}</FieldError>

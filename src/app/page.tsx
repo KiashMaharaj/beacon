@@ -74,6 +74,48 @@ function Feature({
   );
 }
 
+function NewsletterSignup() {
+  const { subscribeNewsletter } = useBeacon();
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('busy');
+    const ok = await subscribeNewsletter(email, 'landing');
+    setStatus(ok ? 'done' : 'error');
+  };
+
+  if (status === 'done') {
+    return (
+      <p className="text-center text-[15px] font-semibold text-beacon-600 dark:text-beacon-400">
+        You&apos;re on the list — thanks for joining the pack! 🐾
+      </p>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="mx-auto flex max-w-md flex-col gap-2.5 sm:flex-row">
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="you@example.com"
+        aria-label="Email address"
+        className="h-12 flex-1 rounded-2xl border border-beacon-200 bg-white/80 px-4 text-[15px] text-ink outline-none focus:ring-2 focus:ring-beacon-400 dark:border-stone-700 dark:bg-stone-800/70 dark:text-cream-50"
+      />
+      <button
+        type="submit"
+        disabled={status === 'busy'}
+        className="inline-flex h-12 items-center justify-center rounded-2xl bg-beacon-gradient px-6 text-[15px] font-semibold text-white shadow-glow transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-60"
+      >
+        {status === 'busy' ? 'Joining…' : 'Subscribe'}
+      </button>
+    </form>
+  );
+}
+
 export default function LandingPage() {
   const router = useRouter();
   const { ready, signedIn } = useBeacon();
@@ -295,6 +337,29 @@ export default function LandingPage() {
           >
             Get started free
           </Link>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="border-t border-beacon-100/60 py-14 dark:border-stone-800/70">
+        <div className="mx-auto max-w-2xl px-5 text-center">
+          <h2 className="font-display text-2xl font-extrabold text-ink dark:text-cream-50">
+            Stay in the loop
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-[15px] text-ink-muted dark:text-stone-400">
+            Occasional Beacon updates, safety tips and reunion stories. No spam, unsubscribe any
+            time.
+          </p>
+          <div className="mt-6">
+            <NewsletterSignup />
+          </div>
+          <p className="mt-3 text-xs text-ink-muted/70">
+            By subscribing you agree to receive marketing emails from Beacon. See our{' '}
+            <Link href="/privacy" className="underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </div>
       </section>
 

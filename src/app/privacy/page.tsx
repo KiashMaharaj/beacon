@@ -82,6 +82,25 @@ export default function PrivacyPage() {
         <p>We do not sell your personal information, and we do not use it for advertising.</p>
       </Section>
 
+      <Section title="Marketing emails">
+        <p>
+          If you choose to opt in - by ticking the box when you sign up, or subscribing on our
+          website - we will send you occasional Beacon updates, safety tips and reunion stories. This
+          is entirely optional and separate from the essential service emails we send to run your
+          account, such as sign-up confirmation and password resets.
+        </p>
+        <p>
+          You can unsubscribe at any time using the link in any marketing email, or by emailing us at{' '}
+          <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            className="font-semibold text-beacon-600 underline dark:text-beacon-400"
+          >
+            {CONTACT_EMAIL}
+          </a>
+          . We store your opt-in so we can honour and evidence your consent, as POPIA requires.
+        </p>
+      </Section>
+
       <Section title="What other people can see">
         <p>
           Beacon is a community board, so <strong>pet reports and sightings are visible to other

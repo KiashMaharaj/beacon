@@ -41,6 +41,28 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
         Relationships: [];
       };
+      newsletter_subscribers: {
+        Row: {
+          id: string;
+          email: string;
+          user_id: string | null;
+          source: string;
+          consented: boolean;
+          created_at: string;
+          unsubscribed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          user_id?: string | null;
+          source?: string;
+          consented?: boolean;
+          created_at?: string;
+          unsubscribed_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['newsletter_subscribers']['Insert']>;
+        Relationships: [];
+      };
       pet_reports: {
         Row: {
           id: string;

@@ -101,6 +101,7 @@ interface BeaconContextValue {
   // auth
   signInDemo: (name?: string) => void;
   signUpWithEmail: (input: SignUpInput) => Promise<{ needsConfirmation: boolean }>;
+  subscribeNewsletter: (email: string, source?: 'signup' | 'landing') => Promise<boolean>;
   signInWithEmail: (input: { email: string; password: string }) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   completeOAuth: () => Promise<boolean>;
@@ -343,6 +344,22 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       return { needsConfirmation: data.session == null };
     },
     [client, signInDemo],
+  );
+
+  // Marketing / newsletter opt-in. POPIA: only ever stores a genuine opt-in.
+  // Idempotent (ignores an already-subscribed email). No-op in demo mode.
+  const subscribeNewsletter = useCallback(
+    async (email: string, source: 'signup' | 'landing' = 'landing'): Promise<boolean> => {
+      const clean = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return false;
+      if (!client) return true;
+      const { error } = await client.from('newsletter_subscribers').upsert(
+        { email: clean, source, consented: true, user_id: session?.user?.id ?? null },
+        { onConflict: 'email', ignoreDuplicates: true },
+      );
+      return !error;
+    },
+    [client, session],
   );
 
   const signInWithEmail = useCallback(
@@ -766,6 +783,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       getReport,
       signInDemo,
       signUpWithEmail,
+      subscribeNewsletter,
       signInWithEmail,
       signInWithGoogle,
       completeOAuth,
@@ -805,6 +823,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       getReport,
       signInDemo,
       signUpWithEmail,
+      subscribeNewsletter,
       signInWithEmail,
       signInWithGoogle,
       completeOAuth,

@@ -569,3 +569,29 @@ begin
   end if;
 end $$;
 
+
+-- =====================================================================
+-- 0012_newsletter.sql - marketing / newsletter subscribers
+-- =====================================================================
+
+create table if not exists public.newsletter_subscribers (
+  id              uuid primary key default gen_random_uuid(),
+  email           text not null unique,
+  user_id         uuid references auth.users(id) on delete set null,
+  source          text not null default 'signup',
+  consented       boolean not null default true,
+  created_at      timestamptz not null default now(),
+  unsubscribed_at timestamptz
+);
+
+alter table public.newsletter_subscribers enable row level security;
+
+drop policy if exists "newsletter_insert_any" on public.newsletter_subscribers;
+create policy "newsletter_insert_any" on public.newsletter_subscribers
+  for insert
+  with check (consented = true);
+
+drop policy if exists "newsletter_select_admin" on public.newsletter_subscribers;
+create policy "newsletter_select_admin" on public.newsletter_subscribers
+  for select
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
