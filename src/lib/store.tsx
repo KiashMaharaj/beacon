@@ -79,6 +79,7 @@ interface BeaconContextValue {
   signUpWithEmail: (input: SignUpInput) => Promise<{ needsConfirmation: boolean }>;
   signInWithEmail: (input: { email: string; password: string }) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  completeOAuth: () => Promise<boolean>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -352,6 +353,57 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
     });
     if (error) throw error;
   }, [client, signInDemo]);
+
+  // Finish an OAuth / magic-link redirect. Runs on /auth/callback: exchanges the
+  // PKCE `?code=` for a session using *this* client, so our own onAuthStateChange
+  // fires and the provider's session state updates (a separate client instance
+  // wouldn't notify us, leaving Guard to bounce the user back to /welcome).
+  // Returns true once a session exists.
+  const completeOAuth = useCallback(async (): Promise<boolean> => {
+    if (!client) return false;
+    if (typeof window === 'undefined') return false;
+
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (params.get('error') || hashParams.get('error')) return false;
+
+    // Already have a session (e.g. auto-detected)? Use it.
+    const existing = await client.auth.getSession();
+    if (existing.data.session) {
+      setSession(existing.data.session);
+      return true;
+    }
+
+    const code = params.get('code');
+    if (code) {
+      const { data, error } = await client.auth.exchangeCodeForSession(code);
+      if (data?.session) {
+        setSession(data.session);
+        return true;
+      }
+      // Another init path may have consumed the code first - re-check.
+      if (error) {
+        const again = await client.auth.getSession();
+        if (again.data.session) {
+          setSession(again.data.session);
+          return true;
+        }
+        return false;
+      }
+    }
+
+    // Implicit flow (#access_token=) or a slightly delayed session write: poll
+    // briefly rather than failing immediately.
+    for (let i = 0; i < 6; i += 1) {
+      await new Promise((r) => setTimeout(r, 500));
+      const s = await client.auth.getSession();
+      if (s.data.session) {
+        setSession(s.data.session);
+        return true;
+      }
+    }
+    return false;
+  }, [client]);
 
   const signOut = useCallback(async () => {
     if (client) await client.auth.signOut();
@@ -703,6 +755,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       signUpWithEmail,
       signInWithEmail,
       signInWithGoogle,
+      completeOAuth,
       signOut,
       sendPasswordReset,
       deleteAccount,
@@ -741,6 +794,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       signUpWithEmail,
       signInWithEmail,
       signInWithGoogle,
+      completeOAuth,
       signOut,
       sendPasswordReset,
       deleteAccount,
