@@ -66,11 +66,13 @@ export function PhotoUpload({
           </div>
         )}
       </button>
+      {/* No `capture` attribute: on mobile this lets the user choose their
+          camera OR an existing photo from the gallery. A missing pet's photo is
+          almost always already in the gallery, so forcing the camera was wrong. */}
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
