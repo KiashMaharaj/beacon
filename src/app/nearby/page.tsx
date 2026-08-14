@@ -122,7 +122,7 @@ function NearbyContent() {
                 alt="A curious bunny looking around"
                 width={200}
                 height={288}
-                className="w-[160px] max-w-full"
+                className="w-28 max-w-full"
               />
             }
             title="Nothing here yet"
