@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useBeacon } from '@/lib/store';
@@ -73,6 +73,23 @@ function AreaEditor({
         }
       : { label: '', radiusKm: 3, speciesFilter: 'all' },
   });
+
+  // The Modal stays mounted, so useForm's defaultValues only apply once. Re-seed
+  // the form each time the editor opens so editing an area shows its current
+  // values (and adding a new one starts blank).
+  useEffect(() => {
+    if (!open) return;
+    reset(
+      initial
+        ? {
+            label: initial.label,
+            location: { lat: initial.lat, lng: initial.lng, label: initial.label },
+            radiusKm: initial.radiusKm,
+            speciesFilter: initial.speciesFilter,
+          }
+        : { label: '', radiusKm: 3, speciesFilter: 'all' },
+    );
+  }, [open, initial, reset]);
 
   const submit = (data: AreaForm) => {
     if (!data.location) return;

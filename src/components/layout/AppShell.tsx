@@ -41,7 +41,7 @@ export function AppShell({
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
         ) : (
-          <Link href="/home" aria-label="Beacon home" className="inline-flex">
+          <Link href="/" aria-label="Beacon landing page" className="inline-flex">
             <LogoMark className="h-9 w-9" />
           </Link>
         )}

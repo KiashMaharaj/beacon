@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useBeacon } from '@/lib/store';
-import { LogoMark, Wordmark } from '@/components/brand/Logo';
+import { Wordmark } from '@/components/brand/Logo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { NeighbourhoodIllustration } from '@/components/illustrations/Scenery';
 import { DogIllustration, CatIllustration, PawPrint } from '@/components/illustrations/Pets';
@@ -117,25 +116,15 @@ function NewsletterSignup() {
 }
 
 export default function LandingPage() {
-  const router = useRouter();
-  const { ready, signedIn } = useBeacon();
+  const { signedIn } = useBeacon();
   // Uses the rich hero render at /hero.jpg when present, otherwise falls back to
   // the built-in illustration so the page never breaks if the file is missing.
   const [heroImgOk, setHeroImgOk] = useState(true);
 
-  // Signed-in visitors don't need the marketing page - send them to the app.
-  useEffect(() => {
-    if (ready && signedIn) router.replace('/home');
-  }, [ready, signedIn, router]);
-
-  if (ready && signedIn) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4">
-        <LogoMark className="h-14 w-14 animate-float" />
-        <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-beacon-200 border-t-beacon-500" />
-      </div>
-    );
-  }
+  // The marketing page is public and stays reachable even when signed in (via
+  // the in-app logo), so signed-in visitors get "Open Beacon" CTAs into the app
+  // instead of being bounced away.
+  const appHref = signedIn ? '/home' : '/welcome?mode=signup';
 
   return (
     <main className="min-h-dvh bg-cream-50 dark:bg-stone-950">
@@ -145,18 +134,29 @@ export default function LandingPage() {
           <Wordmark />
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link
-              href="/welcome?mode=login"
-              className="rounded-xl px-3.5 py-2 text-sm font-semibold text-ink-soft hover:text-ink dark:text-stone-300 dark:hover:text-cream-50"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/welcome?mode=signup"
-              className="hidden rounded-xl bg-beacon-gradient px-4 py-2 text-sm font-semibold text-white shadow-glow hover:brightness-105 sm:inline-flex"
-            >
-              Get started
-            </Link>
+            {signedIn ? (
+              <Link
+                href="/home"
+                className="rounded-xl bg-beacon-gradient px-4 py-2 text-sm font-semibold text-white shadow-glow hover:brightness-105"
+              >
+                Open Beacon
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/welcome?mode=login"
+                  className="rounded-xl px-3.5 py-2 text-sm font-semibold text-ink-soft hover:text-ink dark:text-stone-300 dark:hover:text-cream-50"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/welcome?mode=signup"
+                  className="hidden rounded-xl bg-beacon-gradient px-4 py-2 text-sm font-semibold text-white shadow-glow hover:brightness-105 sm:inline-flex"
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -178,12 +178,20 @@ export default function LandingPage() {
               right away.
             </p>
             <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <Link href="/welcome?mode=signup" className={primaryCta}>
-                Get started free
-              </Link>
-              <Link href="/welcome?mode=login" className={outlineCta}>
-                I already have an account
-              </Link>
+              {signedIn ? (
+                <Link href="/home" className={primaryCta}>
+                  Open Beacon
+                </Link>
+              ) : (
+                <>
+                  <Link href="/welcome?mode=signup" className={primaryCta}>
+                    Get started free
+                  </Link>
+                  <Link href="/welcome?mode=login" className={outlineCta}>
+                    I already have an account
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           <div className="flex items-center justify-center">
@@ -332,10 +340,10 @@ export default function LandingPage() {
             start.
           </p>
           <Link
-            href="/welcome?mode=signup"
+            href={appHref}
             className="mt-7 inline-flex h-14 items-center justify-center rounded-2xl bg-white px-8 text-base font-bold text-beacon-600 shadow-soft transition-all hover:bg-cream-50 active:scale-[0.98]"
           >
-            Get started free
+            {signedIn ? 'Open Beacon' : 'Get started free'}
           </Link>
         </div>
       </section>
