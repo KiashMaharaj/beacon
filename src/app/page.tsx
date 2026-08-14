@@ -19,7 +19,7 @@ import {
   CheckCircleIcon,
 } from '@/components/ui/icons';
 
-const CONTACT_EMAIL = 'kiash.maharaj@gmail.com';
+const CONTACT_EMAIL = 'support@usebeacon.co.za';
 
 const primaryCta =
   'inline-flex h-14 items-center justify-center rounded-2xl bg-beacon-gradient px-7 text-base font-semibold text-white shadow-glow transition-all duration-200 hover:brightness-105 active:scale-[0.98]';

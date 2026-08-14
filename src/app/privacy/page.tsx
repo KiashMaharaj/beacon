@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 // Contact address shown on the policy; Google requires a working privacy contact.
-const CONTACT_EMAIL = 'kiash.maharaj@gmail.com';
+const CONTACT_EMAIL = 'support@usebeacon.co.za';
 const LAST_UPDATED = '1 August 2026';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

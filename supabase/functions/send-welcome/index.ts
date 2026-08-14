@@ -16,6 +16,7 @@
 
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://www.usebeacon.co.za';
 const MAIL_FROM = Deno.env.get('MAIL_FROM') ?? 'Beacon <no-reply@usebeacon.co.za>';
+const REPLY_TO = Deno.env.get('MAIL_REPLY_TO') ?? 'support@usebeacon.co.za';
 
 function welcomeHtml(firstName: string): string {
   const hi = firstName ? `, ${firstName}` : '';
@@ -104,6 +105,7 @@ Deno.serve(async (req: Request) => {
     body: JSON.stringify({
       from: MAIL_FROM,
       to: [email],
+      reply_to: REPLY_TO,
       subject: 'Welcome to Beacon \u{1F43E}',
       html: welcomeHtml(firstName),
     }),
