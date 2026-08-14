@@ -105,7 +105,11 @@ Deno.serve(async (req: Request) => {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const sa = JSON.parse(Deno.env.get('FCM_SERVICE_ACCOUNT')!);
   const projectId = sa.project_id;
-  const appUrl = Deno.env.get('APP_URL') ?? 'https://beacon-six-chi.vercel.app';
+  const appUrl = Deno.env.get('APP_URL') ?? 'https://www.usebeacon.co.za';
+  // A Firebase project id is not sensitive - log it so it can be compared with
+  // the client's NEXT_PUBLIC_FIREBASE_PROJECT_ID (they must be the same project,
+  // otherwise every FCM send is rejected).
+  console.log('[notify-nearby] FCM project id =', projectId);
 
   const restHeaders = {
     apikey: serviceKey,
