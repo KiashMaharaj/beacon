@@ -120,9 +120,9 @@ function NearbyContent() {
               <img
                 src="/nearby-empty.webp"
                 alt="A curious bunny looking around"
-                width={200}
-                height={288}
-                className="w-28 max-w-full"
+                width={434}
+                height={560}
+                className="w-[124px] max-w-full"
               />
             }
             title="Nothing here yet"
