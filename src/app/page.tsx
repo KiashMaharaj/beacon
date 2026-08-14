@@ -102,7 +102,7 @@ function NewsletterSignup() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
         aria-label="Email address"
-        className="h-12 flex-1 rounded-2xl border border-beacon-200 bg-white/80 px-4 text-[15px] text-ink outline-none focus:ring-2 focus:ring-beacon-400 dark:border-stone-700 dark:bg-stone-800/70 dark:text-cream-50"
+        className="h-12 w-full shrink-0 rounded-2xl border border-beacon-200 bg-white/80 px-4 text-[15px] text-ink outline-none focus:ring-2 focus:ring-beacon-400 sm:flex-1 dark:border-stone-700 dark:bg-stone-800/70 dark:text-cream-50"
       />
       <button
         type="submit"
