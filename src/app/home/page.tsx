@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Feedback';
 import { PawPrint } from '@/components/illustrations/Pets';
-import { CelebrationBurst, NeighbourhoodIllustration } from '@/components/illustrations/Scenery';
+import { CelebrationBurst } from '@/components/illustrations/Scenery';
 import { BellIcon, ChevronRightIcon, PlusIcon, SparkleIcon, EyeIcon } from '@/components/ui/icons';
 
 const tips = [
@@ -140,7 +140,16 @@ function HomeContent() {
         {nearby.length === 0 ? (
           <Card>
             <EmptyState
-              illustration={<NeighbourhoodIllustration className="max-w-[220px]" />}
+              illustration={
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src="/empty-nearby.webp"
+                  alt="A happy dog and cat resting safely together"
+                  width={240}
+                  height={200}
+                  className="w-[220px] max-w-full"
+                />
+              }
               title="No pets missing nearby"
               description="That's wonderful news. If you spot a lost pet, you can report a found pet to help them home."
               action={
