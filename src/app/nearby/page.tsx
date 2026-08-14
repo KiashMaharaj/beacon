@@ -11,7 +11,6 @@ import { EmptyState } from '@/components/ui/Feedback';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Input } from '@/components/ui/Field';
 import { SearchIcon } from '@/components/ui/icons';
-import { OtherPetIllustration } from '@/components/illustrations/Pets';
 import type { PetReport, Species } from '@/lib/types';
 
 type SpeciesTab = 'all' | Species;
@@ -116,7 +115,16 @@ function NearbyContent() {
       {list.length === 0 ? (
         <Card className="mt-3">
           <EmptyState
-            illustration={<OtherPetIllustration className="h-32 w-32" />}
+            illustration={
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src="/nearby-empty.webp"
+                alt="A curious bunny looking around"
+                width={200}
+                height={288}
+                className="w-[160px] max-w-full"
+              />
+            }
             title="Nothing here yet"
             description="Try a different filter or search term. Fewer results is often good news."
           />
