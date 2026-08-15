@@ -7,7 +7,7 @@ import { siteUrl } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Beacon: Helping neighbours bring pets home',
+    default: 'Beacon: Lost & Found Pets in Your Neighbourhood',
     template: '%s · Beacon',
   },
   description:
