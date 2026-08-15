@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { motion, MotionConfig, type Variants } from 'framer-motion';
 import { useBeacon } from '@/lib/store';
 import { Wordmark } from '@/components/brand/Logo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -26,6 +27,42 @@ const primaryCta =
 const outlineCta =
   'inline-flex h-14 items-center justify-center rounded-2xl border border-beacon-200 bg-white/70 px-7 text-base font-semibold text-ink transition-all duration-200 hover:bg-beacon-50 active:scale-[0.98] dark:border-stone-700 dark:bg-stone-800/60 dark:text-cream-50 dark:hover:bg-stone-800';
 
+// Tasteful, subtle motion: a gentle fade + rise, reused across the page.
+const EASE = [0.22, 1, 0.36, 1] as const;
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } },
+};
+const stagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1, delayChildren: 0.04 } },
+};
+
+// Reveals its children on scroll (once). Children can be a stagger group.
+function Reveal({
+  children,
+  className,
+  variants = fadeUp,
+  stagger: isStagger = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  variants?: Variants;
+  stagger?: boolean;
+}) {
+  return (
+    <motion.div
+      className={className}
+      variants={isStagger ? stagger : variants}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: '-60px' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function Step({
   n,
   icon,
@@ -38,7 +75,11 @@ function Step({
   body: string;
 }) {
   return (
-    <div className="relative rounded-3xl border border-beacon-100/70 bg-white/70 p-6 shadow-soft dark:border-stone-800 dark:bg-stone-900/50">
+    <motion.div
+      variants={fadeUp}
+      whileHover={{ y: -6, transition: { duration: 0.2, ease: 'easeOut' } }}
+      className="relative rounded-3xl border border-beacon-100/70 bg-white/70 p-6 shadow-soft dark:border-stone-800 dark:bg-stone-900/50"
+    >
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-beacon-gradient text-white shadow-glow">
         {icon}
       </div>
@@ -47,7 +88,7 @@ function Step({
       </div>
       <h3 className="font-display text-lg font-bold text-ink dark:text-cream-50">{title}</h3>
       <p className="mt-1.5 text-[15px] leading-relaxed text-ink-muted dark:text-stone-400">{body}</p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -61,7 +102,7 @@ function Feature({
   body: string;
 }) {
   return (
-    <div className="flex gap-4">
+    <motion.div variants={fadeUp} className="flex gap-4">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-beacon-50 text-beacon-600 dark:bg-beacon-500/10 dark:text-beacon-400">
         {icon}
       </div>
@@ -69,7 +110,7 @@ function Feature({
         <h3 className="font-display text-[17px] font-bold text-ink dark:text-cream-50">{title}</h3>
         <p className="mt-1 text-[15px] leading-relaxed text-ink-muted dark:text-stone-400">{body}</p>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -127,8 +168,9 @@ export default function LandingPage() {
   const appHref = signedIn ? '/home' : '/welcome?mode=signup';
 
   return (
-    <main className="min-h-dvh bg-cream-50 dark:bg-stone-950">
-      {/* Header */}
+    <MotionConfig reducedMotion="user">
+      <main className="min-h-dvh bg-cream-50 dark:bg-stone-950">
+        {/* Header */}
       <header className="sticky top-0 z-20 border-b border-beacon-100/60 bg-cream-50/80 backdrop-blur-md dark:border-stone-800/70 dark:bg-stone-950/80">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3.5">
           <Wordmark />
@@ -164,20 +206,37 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="mx-auto max-w-5xl px-5 pb-8 pt-12 sm:pt-16">
         <div className="grid items-center gap-8 sm:grid-cols-2 sm:gap-12">
-          <div className="text-center sm:text-left">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-beacon-50 px-3 py-1 text-xs font-semibold text-beacon-600 dark:bg-beacon-500/10 dark:text-beacon-400">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            animate="show"
+            className="text-center sm:text-left"
+          >
+            <motion.span
+              variants={fadeUp}
+              className="inline-flex items-center gap-1.5 rounded-full bg-beacon-50 px-3 py-1 text-xs font-semibold text-beacon-600 dark:bg-beacon-500/10 dark:text-beacon-400"
+            >
               <PawPrint className="h-3.5 w-3.5" />
               Neighbourhood lost &amp; found for pets
-            </span>
-            <h1 className="mt-4 text-balance font-display text-4xl font-extrabold leading-[1.1] text-ink dark:text-cream-50 sm:text-5xl">
+            </motion.span>
+            <motion.h1
+              variants={fadeUp}
+              className="mt-4 text-balance font-display text-4xl font-extrabold leading-[1.1] text-ink dark:text-cream-50 sm:text-5xl"
+            >
               Bring lost pets home, together.
-            </h1>
-            <p className="mx-auto mt-4 max-w-md text-balance text-lg leading-relaxed text-ink-muted dark:text-stone-400 sm:mx-0">
+            </motion.h1>
+            <motion.p
+              variants={fadeUp}
+              className="mx-auto mt-4 max-w-md text-balance text-lg leading-relaxed text-ink-muted dark:text-stone-400 sm:mx-0"
+            >
               When a pet goes missing, every extra pair of eyes matters. Beacon rallies your
               neighbourhood with a photo, a location and a gentle nearby alert, so the search starts
               right away.
-            </p>
-            <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            </motion.p>
+            <motion.div
+              variants={fadeUp}
+              className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center"
+            >
               {signedIn ? (
                 <Link href="/home" className={primaryCta}>
                   Open Beacon
@@ -192,41 +251,52 @@ export default function LandingPage() {
                   </Link>
                 </>
               )}
-            </div>
-          </div>
-          <div className="flex items-center justify-center">
-            {heroImgOk ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src="/hero.jpg"
-                alt="A glowing golden puppy stands inside a beacon signal ring on a neighbourhood street at dusk while neighbours nearby receive alerts on their phones and a trail of light leads home."
-                width={1245}
-                height={1245}
-                onError={() => setHeroImgOk(false)}
-                className="w-full max-w-md rounded-[2rem] shadow-glow"
-              />
-            ) : (
-              <div className="relative">
-                <NeighbourhoodIllustration className="w-full max-w-sm" />
-                <DogIllustration className="absolute -bottom-4 -left-2 h-24 w-24 animate-float" />
-                <CatIllustration className="absolute -right-1 top-2 h-20 w-20 animate-float" />
-              </div>
-            )}
-          </div>
+            </motion.div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: EASE, delay: 0.15 }}
+            className="flex items-center justify-center"
+          >
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+              className="flex w-full justify-center"
+            >
+              {heroImgOk ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src="/hero.jpg"
+                  alt="A glowing golden puppy stands inside a beacon signal ring on a neighbourhood street at dusk while neighbours nearby receive alerts on their phones and a trail of light leads home."
+                  width={1245}
+                  height={1245}
+                  onError={() => setHeroImgOk(false)}
+                  className="w-full max-w-md rounded-[2rem] shadow-glow"
+                />
+              ) : (
+                <div className="relative">
+                  <NeighbourhoodIllustration className="w-full max-w-sm" />
+                  <DogIllustration className="absolute -bottom-4 -left-2 h-24 w-24 animate-float" />
+                  <CatIllustration className="absolute -right-1 top-2 h-20 w-20 animate-float" />
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* How it works */}
       <section className="mx-auto max-w-5xl px-5 py-12">
-        <div className="mb-8 text-center">
+        <Reveal className="mb-8 text-center">
           <h2 className="font-display text-3xl font-extrabold text-ink dark:text-cream-50">
             How Beacon works
           </h2>
           <p className="mt-2 text-ink-muted dark:text-stone-400">
             Three simple steps from lost to found.
           </p>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-3">
+        </Reveal>
+        <Reveal stagger className="grid gap-5 sm:grid-cols-3">
           <Step
             n={1}
             icon={<CameraIcon className="h-6 w-6" />}
@@ -245,21 +315,21 @@ export default function LandingPage() {
             title="Reunite them"
             body="Sightings and matches point the way home. Mark the pet reunited and celebrate together."
           />
-        </div>
+        </Reveal>
       </section>
 
       {/* Smart matching & alerts */}
       <section className="border-y border-beacon-100/60 bg-white/50 py-14 dark:border-stone-800/70 dark:bg-stone-900/30">
         <div className="mx-auto max-w-5xl px-5">
-          <div className="mb-9 text-center">
+          <Reveal className="mb-9 text-center">
             <h2 className="font-display text-3xl font-extrabold text-ink dark:text-cream-50">
               Smart matching &amp; nearby alerts
             </h2>
             <p className="mt-2 text-ink-muted dark:text-stone-400">
               Beacon does the watching for you.
             </p>
-          </div>
-          <div className="grid gap-8 sm:grid-cols-2">
+          </Reveal>
+          <Reveal stagger className="grid gap-8 sm:grid-cols-2">
             <Feature
               icon={<SparkleIcon className="h-5 w-5" />}
               title="Found &harr; missing matching"
@@ -280,22 +350,24 @@ export default function LandingPage() {
               title="Community sightings"
               body="Anyone can add a sighting with a note and location, building a trail that leads the pet home."
             />
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* Privacy & safety */}
       <section className="mx-auto max-w-5xl px-5 py-14">
-        <h2 className="text-center font-display text-3xl font-extrabold text-ink dark:text-cream-50 sm:text-left">
-          Private and safe by design
-        </h2>
-        <div className="mt-8 grid items-center gap-8 sm:grid-cols-2 sm:gap-12">
-          <div className="flex justify-center">
+        <Reveal>
+          <h2 className="text-center font-display text-3xl font-extrabold text-ink dark:text-cream-50 sm:text-left">
+            Private and safe by design
+          </h2>
+        </Reveal>
+        <Reveal stagger className="mt-8 grid items-center gap-8 sm:grid-cols-2 sm:gap-12">
+          <motion.div variants={fadeUp} className="flex justify-center">
             <div className="flex h-28 w-28 items-center justify-center rounded-[2rem] bg-beacon-gradient shadow-glow sm:h-40 sm:w-40 sm:rounded-[2.5rem]">
               <ShieldIcon className="h-14 w-14 text-white sm:h-20 sm:w-20" />
             </div>
-          </div>
-          <div>
+          </motion.div>
+          <motion.div variants={fadeUp}>
             <ul className="space-y-4">
               <li className="flex gap-3">
                 <PhoneIcon className="mt-0.5 h-5 w-5 shrink-0 text-beacon-500" />
@@ -325,13 +397,13 @@ export default function LandingPage() {
             >
               Read our privacy policy
             </Link>
-          </div>
-        </div>
+          </motion.div>
+        </Reveal>
       </section>
 
       {/* Final CTA */}
       <section className="mx-auto max-w-5xl px-5 pb-16">
-        <div className="rounded-[2rem] bg-beacon-gradient px-6 py-12 text-center shadow-glow">
+        <Reveal className="rounded-[2rem] bg-beacon-gradient px-6 py-12 text-center shadow-glow">
           <h2 className="text-balance font-display text-3xl font-extrabold text-white">
             Ready to help bring a pet home?
           </h2>
@@ -345,12 +417,12 @@ export default function LandingPage() {
           >
             {signedIn ? 'Open Beacon' : 'Get started free'}
           </Link>
-        </div>
+        </Reveal>
       </section>
 
       {/* Newsletter */}
       <section className="border-t border-beacon-100/60 py-14 dark:border-stone-800/70">
-        <div className="mx-auto max-w-2xl px-5 text-center">
+        <Reveal className="mx-auto max-w-2xl px-5 text-center">
           <h2 className="font-display text-2xl font-extrabold text-ink dark:text-cream-50">
             Stay in the loop
           </h2>
@@ -368,7 +440,7 @@ export default function LandingPage() {
             </Link>
             .
           </p>
-        </div>
+        </Reveal>
       </section>
 
       {/* Footer */}
@@ -391,6 +463,7 @@ export default function LandingPage() {
           Beacon &middot; Helping neighbours bring pets home
         </p>
       </footer>
-    </main>
+      </main>
+    </MotionConfig>
   );
 }
