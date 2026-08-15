@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useBeacon } from '@/lib/store';
@@ -8,12 +8,18 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Guard } from '@/components/layout/Guard';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
 import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/Feedback';
 import { PetCard } from '@/components/pets/PetCard';
 import { PawPrint } from '@/components/illustrations/Pets';
-import { HeartIcon, BellIcon, EyeIcon, ShieldIcon, ChevronRightIcon } from '@/components/ui/icons';
+import {
+  HeartIcon,
+  BellIcon,
+  EyeIcon,
+  ShieldIcon,
+  ChevronRightIcon,
+  UserIcon,
+} from '@/components/ui/icons';
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
@@ -26,24 +32,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 
 function ProfileContent() {
   const router = useRouter();
-  const { user, reports, signOut, isAdmin, isLive, deleteAccount } = useBeacon();
-  const [showDelete, setShowDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const handleDeleteAccount = async () => {
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      await deleteAccount();
-      router.replace('/welcome');
-    } catch (err) {
-      setDeleting(false);
-      setDeleteError(
-        err instanceof Error ? err.message : 'Could not delete your account. Please try again.',
-      );
-    }
-  };
+  const { user, reports, signOut, isAdmin } = useBeacon();
 
   const mine = useMemo(() => reports.filter((r) => r.reporterId === user.id), [reports, user.id]);
   const reunions = mine.filter((r) => r.status === 'reunited').length;
@@ -143,18 +132,23 @@ function ProfileContent() {
       </div>
 
       <div className="mt-8">
+        <Link href="/profile/settings">
+          <Card className="mb-4 flex items-center gap-3 p-4 transition hover:-translate-y-0.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-stone-100 text-ink-soft dark:bg-stone-800 dark:text-stone-300">
+              <UserIcon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-ink dark:text-cream-50">Account settings</p>
+              <p className="text-xs text-ink-muted dark:text-stone-400">
+                Your account, privacy and account deletion.
+              </p>
+            </div>
+            <ChevronRightIcon className="h-5 w-5 text-ink-muted" />
+          </Card>
+        </Link>
         <Button variant="outline" fullWidth onClick={handleSignOut}>
           Sign out
         </Button>
-        {isLive && (
-          <button
-            type="button"
-            onClick={() => setShowDelete(true)}
-            className="mt-4 w-full text-center text-sm font-semibold text-rose-500 hover:text-rose-600"
-          >
-            Delete my account
-          </button>
-        )}
         <p className="mt-6 text-center text-xs text-ink-muted/70">
           Beacon v1.0 · Helping neighbours bring pets home
         </p>
@@ -168,54 +162,7 @@ function ProfileContent() {
           </Link>
         </p>
       </div>
-
-      <DeleteAccountModal
-        open={showDelete}
-        onClose={() => setShowDelete(false)}
-        onConfirm={handleDeleteAccount}
-        deleting={deleting}
-        error={deleteError}
-      />
     </AppShell>
-  );
-}
-
-function DeleteAccountModal({
-  open,
-  onClose,
-  onConfirm,
-  deleting,
-  error,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  deleting: boolean;
-  error: string | null;
-}) {
-  return (
-    <Modal open={open} onClose={onClose} title="Delete your account?">
-      <div className="space-y-4">
-        <p className="text-sm text-ink-soft dark:text-stone-300">
-          This permanently deletes your account, your reports and your saved areas. Reunited pets
-          and sightings you helped with stay in the community, but no longer show your name. This
-          cannot be undone.
-        </p>
-        {error && (
-          <p className="rounded-2xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600 dark:bg-rose-500/10">
-            {error}
-          </p>
-        )}
-        <div className="flex gap-3">
-          <Button variant="outline" fullWidth onClick={onClose} disabled={deleting}>
-            Cancel
-          </Button>
-          <Button variant="danger" fullWidth onClick={onConfirm} loading={deleting}>
-            Delete forever
-          </Button>
-        </div>
-      </div>
-    </Modal>
   );
 }
 
