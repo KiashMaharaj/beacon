@@ -11,9 +11,40 @@ export const metadata: Metadata = {
     template: '%s · Beacon',
   },
   description:
-    'Beacon is a neighbourhood community app that helps neighbours reunite lost pets with their owners.',
+    'Beacon is a free neighbourhood lost-and-found app for pets. Report a missing or found dog, cat or pet, get nearby alerts, share sightings, and reunite lost pets with their families.',
   applicationName: 'Beacon',
+  keywords: [
+    'lost pets',
+    'found pets',
+    'lost and found pets',
+    'missing pet',
+    'lost dog',
+    'lost cat',
+    'found dog',
+    'found cat',
+    'reunite lost pets',
+    'pet alerts',
+    'neighbourhood pets',
+    'South Africa',
+    'Beacon',
+  ],
+  authors: [{ name: 'Beacon' }],
+  creator: 'Beacon',
+  publisher: 'Beacon',
+  category: 'lifestyle',
   metadataBase: new URL(siteUrl),
+  alternates: { canonical: '/' },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
@@ -57,11 +88,49 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${siteUrl}/#organization`,
+      name: 'Beacon',
+      url: siteUrl,
+      logo: `${siteUrl}/icon-512.png`,
+      email: 'support@usebeacon.co.za',
+      description: 'A free neighbourhood lost-and-found app for pets.',
+      areaServed: 'ZA',
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteUrl}/#website`,
+      url: siteUrl,
+      name: 'Beacon',
+      inLanguage: 'en',
+      publisher: { '@id': `${siteUrl}/#organization` },
+    },
+    {
+      '@type': 'WebApplication',
+      name: 'Beacon',
+      url: siteUrl,
+      applicationCategory: 'LifestyleApplication',
+      operatingSystem: 'Web, Android',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'ZAR' },
+      description:
+        'Report lost or found pets, get nearby alerts, and reunite pets with their families.',
+    },
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeScript />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </head>
       <body className="font-sans">
         <BeaconProvider>{children}</BeaconProvider>
