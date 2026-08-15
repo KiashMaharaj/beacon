@@ -122,6 +122,28 @@ function PetDetailContent() {
     if (result === 'copied') alert('Link copied. Share it with your neighbours!');
   };
 
+  // Open the location in the user's own maps app rather than forcing Google Maps.
+  // On Android the geo: scheme brings up the phone's app chooser (Google Maps,
+  // Waze, etc.); iOS has no chooser, so we open Apple Maps (its default);
+  // desktop falls back to web maps.
+  const openInMaps = () => {
+    if (!report.location) return;
+    const { lat, lng, label } = report.location;
+    const name = encodeURIComponent(label || (report.name ?? 'Location'));
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    if (/Android/i.test(ua)) {
+      window.location.href = `geo:${lat},${lng}?q=${lat},${lng}(${name})`;
+    } else if (/iPad|iPhone|iPod/i.test(ua)) {
+      window.open(`https://maps.apple.com/?ll=${lat},${lng}&q=${name}`, '_blank', 'noopener,noreferrer');
+    } else {
+      window.open(
+        `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+        '_blank',
+        'noopener,noreferrer',
+      );
+    }
+  };
+
   const submitFlag = async () => {
     setFlagging(true);
     try {
@@ -263,16 +285,15 @@ function PetDetailContent() {
               <MapPinIcon className="h-4 w-4" /> {report.location.label}
             </p>
           )}
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${report.location.lat},${report.location.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 block"
+          <Button
+            variant="outline"
+            size="sm"
+            fullWidth
+            onClick={openInMaps}
+            className="mt-3"
           >
-            <Button variant="outline" size="sm" fullWidth>
-              <MapPinIcon className="h-4 w-4" /> Open in Maps
-            </Button>
-          </a>
+            <MapPinIcon className="h-4 w-4" /> Open in Maps
+          </Button>
         </div>
       )}
 
