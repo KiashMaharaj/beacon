@@ -286,17 +286,17 @@ export default function LandingPage() {
 
       {/* Privacy & safety */}
       <section className="mx-auto max-w-5xl px-5 py-14">
-        <div className="grid items-center gap-8 sm:grid-cols-2 sm:gap-12">
-          <div className="order-2 flex justify-center sm:order-1">
-            <div className="flex h-40 w-40 items-center justify-center rounded-[2.5rem] bg-beacon-gradient shadow-glow">
-              <ShieldIcon className="h-20 w-20 text-white" />
+        <h2 className="text-center font-display text-3xl font-extrabold text-ink dark:text-cream-50 sm:text-left">
+          Private and safe by design
+        </h2>
+        <div className="mt-8 grid items-center gap-8 sm:grid-cols-2 sm:gap-12">
+          <div className="flex justify-center">
+            <div className="flex h-28 w-28 items-center justify-center rounded-[2rem] bg-beacon-gradient shadow-glow sm:h-40 sm:w-40 sm:rounded-[2.5rem]">
+              <ShieldIcon className="h-14 w-14 text-white sm:h-20 sm:w-20" />
             </div>
           </div>
-          <div className="order-1 sm:order-2">
-            <h2 className="font-display text-3xl font-extrabold text-ink dark:text-cream-50">
-              Private and safe by design
-            </h2>
-            <ul className="mt-5 space-y-4">
+          <div>
+            <ul className="space-y-4">
               <li className="flex gap-3">
                 <PhoneIcon className="mt-0.5 h-5 w-5 shrink-0 text-beacon-500" />
                 <span className="text-[15px] leading-relaxed text-ink-soft dark:text-stone-300">
