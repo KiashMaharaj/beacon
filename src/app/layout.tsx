@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { BeaconProvider } from '@/lib/store';
 import { ThemeScript } from '@/components/ThemeScript';
@@ -139,6 +140,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PushListener />
         <Analytics />
         <SpeedInsights />
+        {/* Google Analytics (gtag.js) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-02ESFJB4K1"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-02ESFJB4K1');
+          `}
+        </Script>
       </body>
     </html>
   );
