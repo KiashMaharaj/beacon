@@ -351,3 +351,26 @@ export async function insertMatch(
       { onConflict: 'found_report_id,missing_report_id', ignoreDuplicates: true },
     );
 }
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  fullName: string | null;
+  isAdmin: boolean;
+  createdAt: string;
+  reportsCount: number;
+};
+
+/** List everyone who has signed up (admin only, enforced inside the RPC). */
+export async function fetchAdminUsers(client: Client): Promise<AdminUser[]> {
+  const { data, error } = await client.rpc('admin_list_users');
+  if (error) throw error;
+  return (data ?? []).map((u) => ({
+    id: u.id,
+    email: u.email,
+    fullName: u.full_name,
+    isAdmin: u.is_admin,
+    createdAt: u.created_at,
+    reportsCount: Number(u.reports_count ?? 0),
+  }));
+}

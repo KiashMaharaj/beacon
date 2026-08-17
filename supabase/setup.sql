@@ -595,3 +595,41 @@ drop policy if exists "newsletter_select_admin" on public.newsletter_subscribers
 create policy "newsletter_select_admin" on public.newsletter_subscribers
   for select
   using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+
+-- =====================================================================
+-- 0013_admin_users.sql - admin user directory
+-- =====================================================================
+-- Lets an admin see who has signed up (name, email, join date, report count).
+-- Emails live in auth.users, which clients can't read directly, so this is a
+-- security-definer function gated on public.is_admin() — non-admins get zero
+-- rows. Returns newest sign-ups first.
+
+create or replace function public.admin_list_users()
+  returns table (
+    id uuid,
+    email text,
+    full_name text,
+    is_admin boolean,
+    created_at timestamptz,
+    reports_count bigint
+  )
+  language sql
+  stable
+  security definer
+  set search_path = public
+as $$
+  select
+    p.id,
+    u.email::text as email,
+    p.full_name,
+    p.is_admin,
+    p.created_at,
+    (select count(*) from public.pet_reports r where r.reporter_id = p.id) as reports_count
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where public.is_admin()
+  order by p.created_at desc;
+$$;
+
+revoke all on function public.admin_list_users() from anon;
+grant execute on function public.admin_list_users() to authenticated;

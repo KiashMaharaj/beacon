@@ -16,6 +16,7 @@ import { findMatches, type ScoredMatch } from './matching';
 import { DEMO_USER, demoAreas, demoPrefs, demoReports } from './demo-data';
 import { getBrowserClient } from './supabase/client';
 import * as repo from './supabase/repo';
+import type { AdminUser } from './supabase/repo';
 import { registerForPush } from './push';
 import { supabaseAnonKey, supabaseUrl } from './config';
 import type {
@@ -128,6 +129,7 @@ interface BeaconContextValue {
   flagReport: (reportId: string, reason: string) => Promise<void>;
   fetchFlags: () => Promise<Flag[]>;
   dismissFlag: (flagId: string) => Promise<void>;
+  fetchAdminUsers: () => Promise<AdminUser[]>;
 
   // alerts
   updatePrefs: (patch: Partial<NotificationPrefs>) => Promise<void>;
@@ -676,6 +678,17 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
     [client, session],
   );
 
+  const fetchAdminUsers = useCallback(async (): Promise<AdminUser[]> => {
+    if (client && session) {
+      try {
+        return await repo.fetchAdminUsers(client);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }, [client, session]);
+
   const matchesForFound = useCallback(
     (found: PetReport) => findMatches(found, reports),
     [reports],
@@ -803,6 +816,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       flagReport,
       fetchFlags,
       dismissFlag,
+      fetchAdminUsers,
       updatePrefs,
       enableAlerts,
       addArea,
@@ -843,6 +857,7 @@ export function BeaconProvider({ children }: { children: ReactNode }) {
       flagReport,
       fetchFlags,
       dismissFlag,
+      fetchAdminUsers,
       updatePrefs,
       enableAlerts,
       addArea,

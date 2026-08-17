@@ -13,9 +13,10 @@ import { EmptyState } from '@/components/ui/Feedback';
 import { PetPhoto } from '@/components/pets/PetPhoto';
 import { LogoMark } from '@/components/brand/Logo';
 import { PawPrint } from '@/components/illustrations/Pets';
-import { SearchIcon } from '@/components/ui/icons';
-import { speciesLabel, timeAgo } from '@/lib/format';
+import { SearchIcon, UserIcon } from '@/components/ui/icons';
+import { speciesLabel, timeAgo, prettyDate } from '@/lib/format';
 import type { Flag, PetReport } from '@/lib/types';
+import type { AdminUser } from '@/lib/supabase/repo';
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
@@ -27,21 +28,55 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 function AdminContent() {
-  const { reports, markReunited, deleteReport, deleteSighting, fetchFlags, dismissFlag } =
+  const { reports, markReunited, deleteReport, deleteSighting, fetchFlags, dismissFlag, fetchAdminUsers } =
     useBeacon();
   const [query, setQuery] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [flags, setFlags] = useState<Flag[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [userQuery, setUserQuery] = useState('');
 
   useEffect(() => {
     let active = true;
     fetchFlags().then((f) => {
       if (active) setFlags(f);
     });
+    fetchAdminUsers().then((u) => {
+      if (active) {
+        setUsers(u);
+        setUsersLoaded(true);
+      }
+    });
     return () => {
       active = false;
     };
-  }, [fetchFlags]);
+  }, [fetchFlags, fetchAdminUsers]);
+
+  const userStats = useMemo(() => {
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    let today = 0;
+    let week = 0;
+    let month = 0;
+    for (const u of users) {
+      const t = new Date(u.createdAt).getTime();
+      if (t >= startOfToday.getTime()) today += 1;
+      if (now - t <= 7 * day) week += 1;
+      if (now - t <= 30 * day) month += 1;
+    }
+    return { total: users.length, today, week, month };
+  }, [users]);
+
+  const filteredUsers = useMemo(() => {
+    const q = userQuery.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) =>
+      [u.fullName, u.email].filter(Boolean).join(' ').toLowerCase().includes(q),
+    );
+  }, [users, userQuery]);
 
   const flaggedGroups = useMemo(() => {
     const byReport = new Map<string, { report?: PetReport; flags: Flag[] }>();
@@ -128,6 +163,79 @@ function AdminContent() {
         <Stat value={stats.reunited} label="Reunited" />
         <Stat value={stats.sightings} label="Sightings" />
       </Card>
+
+      {/* Neighbours / sign-ups */}
+      <div className="mt-8">
+        <div className="mb-3 flex items-center gap-2">
+          <UserIcon className="h-5 w-5 text-beacon-500" />
+          <h2 className="font-display text-lg font-bold text-ink dark:text-cream-50">
+            Neighbours{usersLoaded ? ` (${userStats.total})` : ''}
+          </h2>
+        </div>
+
+        <Card className="flex p-4">
+          <Stat value={userStats.total} label="Total" />
+          <Stat value={userStats.today} label="Today" />
+          <Stat value={userStats.week} label="This week" />
+          <Stat value={userStats.month} label="This month" />
+        </Card>
+
+        {!usersLoaded ? (
+          <Card className="mt-3 p-4">
+            <p className="text-sm text-ink-muted dark:text-stone-400">Loading sign-ups…</p>
+          </Card>
+        ) : users.length === 0 ? (
+          <Card className="mt-3 p-4">
+            <p className="text-sm text-ink-muted dark:text-stone-400">No sign-ups yet.</p>
+          </Card>
+        ) : (
+          <>
+            <div className="relative my-3">
+              <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" />
+              <Input
+                value={userQuery}
+                onChange={(e) => setUserQuery(e.target.value)}
+                placeholder="Search by name or email…"
+                className="pl-11"
+                aria-label="Search neighbours"
+              />
+            </div>
+            <div className="space-y-2">
+              {filteredUsers.map((u) => {
+                const name = u.fullName?.trim() || 'Unnamed neighbour';
+                const initial = (u.fullName?.trim() || u.email || '?').charAt(0).toUpperCase();
+                return (
+                  <Card key={u.id} className="flex items-center gap-3 p-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-beacon-100 font-display font-bold text-beacon-700 dark:bg-beacon-500/15 dark:text-beacon-300">
+                      {initial}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-semibold text-ink dark:text-cream-50">{name}</p>
+                        {u.isAdmin && <Badge tone="harbor">admin</Badge>}
+                      </div>
+                      <p className="truncate text-xs text-ink-muted dark:text-stone-400">{u.email}</p>
+                      <p className="mt-0.5 text-xs text-ink-muted dark:text-stone-400">
+                        Joined {prettyDate(u.createdAt)}
+                        {u.reportsCount > 0
+                          ? ` · ${u.reportsCount} report${u.reportsCount > 1 ? 's' : ''}`
+                          : ''}
+                      </p>
+                    </div>
+                  </Card>
+                );
+              })}
+              {filteredUsers.length === 0 && (
+                <Card className="p-4">
+                  <p className="text-sm text-ink-muted dark:text-stone-400">
+                    No neighbours match “{userQuery}”.
+                  </p>
+                </Card>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Flagged content */}
       {flaggedGroups.length > 0 && (

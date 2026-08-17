@@ -196,6 +196,17 @@ export interface Database {
         Args: { lat1: number; lng1: number; lat2: number; lng2: number };
         Returns: number;
       };
+      admin_list_users: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          email: string;
+          full_name: string | null;
+          is_admin: boolean;
+          created_at: string;
+          reports_count: number;
+        }[];
+      };
     };
     Enums: {
       pet_species: PetSpecies;
